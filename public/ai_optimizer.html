@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>🧠 AI Optimizer – Win100 (EV-aware)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body{background:#020617;color:#e5e7eb;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    .card{background:rgba(15,23,42,.95);border-radius:.75rem;border:1px solid rgba(148,163,184,.4)}
+    .pill{padding:.2rem .6rem;border-radius:999px;font-size:.72rem;font-weight:700;display:inline-flex}
+    .mono{font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+    .k{color:#a5b4fc}
+    .v{color:#86efac}
+    .chg{color:#fca5a5}
+  </style>
+</head>
+<body class="min-h-screen">
+  <!-- เมนู -->
+  <header class="w-full border-b border-slate-800 bg-slate-900/80 backdrop-blur">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <span class="text-2xl">⚽</span>
+        <div>
+          <div class="text-sm font-semibold text-emerald-400">Win100 – AI Optimizer (EV/ROI/CLV)</div>
+          <div class="text-[11px] text-slate-400">สแกนบอลสด | ดูสถิติ | ปรับสูตรด้วย AI</div>
+        </div>
+      </div>
+      <nav class="flex flex-wrap gap-2 text-xs">
+        <a href="/" class="px-3 py-1.5 rounded-full border border-slate-600 bg-slate-800 hover:bg-emerald-500 hover:text-slate-900 transition">🟢 หน้า Scanner สด</a>
+        <a href="/dashboard.html" class="px-3 py-1.5 rounded-full border border-slate-600 bg-slate-800 hover:bg-sky-500 hover:text-slate-900 transition">📊 Dashboard สถิติ</a>
+        <a href="/ai_optimizer.html" class="px-3 py-1.5 rounded-full border border-slate-600 bg-slate-800 hover:bg-violet-500 hover:text-slate-900 transition">🧠 AI Optimizer</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+    <!-- แผงควบคุม -->
+    <div class="card p-4">
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="text-sm text-slate-200">ตัวช่วยปรับสูตรอัตโนมัติ (เน้น WinRate/ROI/CLV ดี → คลายสูตร, อ่อน → เข้ม/ปิด)</div>
+        <div class="ml-auto flex gap-2">
+          <button id="btnOptimize" class="px-4 py-2 rounded-lg bg-violet-500 hover:bg-violet-400 text-slate-900 text-sm font-semibold">🤖 ขอคำแนะนำจาก AI</button>
+          <button id="btnApply" class="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-900 text-sm font-semibold" disabled>✅ Apply กลยุทธ์ที่แนะนำ</button>
+        </div>
+      </div>
+      <div id="status" class="text-xs text-slate-400 mt-2"></div>
+    </div>
+
+    <!-- ภาพรวม EV ปัจจุบัน -->
+    <div class="card p-4">
+      <h2 class="text-sm font-semibold text-slate-100 mb-3">ภาพรวมผลงานสูตร (ปัจจุบัน)</h2>
+      <div id="evSummary" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs"></div>
+    </div>
+
+    <!-- ข้อเสนอ/หมายเหตุจาก AI -->
+    <div class="card p-4">
+      <h2 class="text-sm font-semibold text-slate-100 mb-3">สรุปข้อเสนอจาก AI</h2>
+      <ul id="aiNotes" class="list-disc pl-5 text-xs text-slate-300 space-y-1"></ul>
+      <div id="noNotes" class="text-xs text-slate-400">— ยังไม่มีข้อเสนอ —</div>
+    </div>
+
+    <!-- Diff แบบอ่านง่าย -->
+    <div class="card p-4">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-sm font-semibold text-slate-100">ความต่างของค่า params ที่ AI เสนอ (เทียบ current → suggest)</h2>
+        <label class="text-xs text-slate-400 flex items-center gap-2">
+          <input id="toggleOnlyChanged" type="checkbox" class="accent-emerald-500" checked>
+          แสดงเฉพาะค่าที่เปลี่ยน
+        </label>
+      </div>
+      <div id="diffWrap" class="mono text-xs overflow-x-auto whitespace-pre border border-slate-700/70 rounded-lg p-3 bg-slate-900/60">—</div>
+    </div>
+
+    <!-- JSON ดิบ (หากอยากแก้มือ) -->
+    <div class="card p-4">
+      <h2 class="text-sm font-semibold text-slate-100 mb-2">JSON ที่ AI ส่งมา (ปรับเองได้ก่อน Apply)</h2>
+      <textarea id="jsonBox" class="mono w-full min-h-[220px] bg-slate-950 border border-slate-700 rounded-lg p-3 text-xs" spellcheck="false" placeholder='{"strategies": {...}, "notes":[...]}'></textarea>
+      <div class="flex justify-end mt-2">
+        <button id="btnValidate" class="px-3 py-1.5 rounded-md bg-sky-500 hover:bg-sky-400 text-slate-900 text-xs font-semibold">🔎 ตรวจ JSON</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const btnOptimize = document.getElementById("btnOptimize");
+    const btnApply = document.getElementById("btnApply");
+    const btnValidate = document.getElementById("btnValidate");
+    const statusBox = document.getElementById("status");
+    const evSummary = document.getElementById("evSummary");
+    const aiNotes = document.getElementById("aiNotes");
+    const noNotes = document.getElementById("noNotes");
+    const jsonBox = document.getElementById("jsonBox");
+    const diffWrap = document.getElementById("diffWrap");
+    const toggleOnlyChanged = document.getElementById("toggleOnlyChanged");
+
+    let lastSuggestions = null;
+    let currentStats = null;
+
+    function setStatus(msg){ statusBox.textContent = msg || ""; }
+    function fmt(x, d=2){ return (x===null || x===undefined || isNaN(x))? "–" : Number(x).toFixed(d); }
+    function wr(win, lose){ const t = (win||0)+(lose||0); return t? Math.round((win||0)*100/t):0; }
+
+    async function loadStats(){
+      // ขอ overall เพื่อนำ byStrategy มาแสดง EV ปัจจุบัน
+      try{
+        const r = await fetch("/api/stats");
+        const data = await r.json();
+        if(data.status!=="success") throw new Error(data.message||"โหลดสถิติไม่สำเร็จ");
+        currentStats = data;
+        renderEVSummary(data.byStrategy||{});
+      }catch(e){
+        console.error(e);
+        evSummary.innerHTML = '<div class="text-xs text-slate-400">โหลดสถิติรวมไม่สำเร็จ</div>';
+      }
+    }
+
+    function renderEVSummary(byStrategy){
+      evSummary.innerHTML = "";
+      const keys = Object.keys(byStrategy).sort();
+      if(!keys.length){
+        evSummary.innerHTML = '<div class="text-xs text-slate-400">ยังไม่มีข้อมูล</div>';
+        return;
+      }
+      for(const key of keys){
+        const s = byStrategy[key];
+        const card = document.createElement("div");
+        card.className = "border border-slate-700 rounded-lg px-3 py-2 bg-slate-900/60";
+        card.innerHTML = `
+          <div class="font-semibold text-sky-300 mb-1">${key}</div>
+          <div class="grid grid-cols-2 gap-1 text-[11px] text-slate-300">
+            <div>ทั้งหมด: ${s.total||0}</div>
+            <div>WinRate: ${wr(s.win||0, s.lose||0)}%</div>
+            <div>ROI/บิล: ${fmt(s.roiAvg,4)}</div>
+            <div>CLV เฉลี่ย: ${s.clvAvg===null?"–":fmt(s.clvAvg,2)+"%"}</div>
+          </div>`;
+        evSummary.appendChild(card);
+      }
+    }
+
+    function renderNotes(notes){
+      aiNotes.innerHTML = "";
+      if(!Array.isArray(notes) || !notes.length){
+        noNotes.style.display = "block";
+        return;
+      }
+      noNotes.style.display = "none";
+      for(const n of notes){
+        const li = document.createElement("li");
+        li.textContent = n;
+        aiNotes.appendChild(li);
+      }
+    }
+
+    function diffStrategies(current, suggest, onlyChanged=true){
+      const out = [];
+      const allKeys = new Set([...Object.keys(current||{}), ...Object.keys(suggest||{})]);
+      for(const k of [...allKeys].sort()){
+        const cur = current?.[k] || {};
+        const sug = suggest?.[k] || {};
+        const changed = [];
+
+        // enabled
+        if(cur.enabled !== sug.enabled){
+          changed.push(`  .enabled: ${cur.enabled}  →  ${sug.enabled}`);
+        }
+
+        // label (ไม่บังคับ)
+        if(cur.label !== sug.label && sug.label){
+          changed.push(`  .label: "${cur.label||""}"  →  "${sug.label}"`);
+        }
+
+        // params
+        const pKeys = new Set([...Object.keys(cur.params||{}), ...Object.keys(sug.params||{})]);
+        for(const pk of [...pKeys].sort()){
+          const a = cur.params?.[pk];
+          const b = sug.params?.[pk];
+          if (a !== b) changed.push(`  .params.${pk}: ${String(a)}  →  ${String(b)}`);
+        }
+
+        if(!onlyChanged){
+          out.push(`${k}:\n${changed.length? changed.map(x=>"• "+x).join("\n"):"  (no change)"}`);
+        }else if(changed.length){
+          out.push(`${k}:\n${changed.map(x=>"• "+x).join("\n")}`);
+        }
+      }
+      return out.join("\n\n") || "— ไม่มีความต่าง —";
+    }
+
+    async function doOptimize(){
+      setStatus("กำลังขอคำแนะนำจาก AI…");
+      btnOptimize.disabled = true;
+      btnApply.disabled = true;
+      try{
+        const r = await fetch("/api/ai-optimize", { method: "POST", headers: { "Content-Type":"application/json" }, body: JSON.stringify({}) });
+        const data = await r.json();
+        if(data.status!=="success") throw new Error(data.message||"เรียก AI ไม่สำเร็จ");
+
+        lastSuggestions = data.suggestions || {};
+        // ใส่ JSON ลงกล่องให้แก้มือได้
+        jsonBox.value = JSON.stringify(lastSuggestions, null, 2);
+
+        // render notes
+        renderNotes(lastSuggestions.notes || []);
+
+        // diff current vs suggest
+        const text = diffStrategies(data.currentStrategies||{}, (lastSuggestions.strategies||{}), toggleOnlyChanged.checked);
+        diffWrap.textContent = text;
+
+        setStatus("ได้ข้อเสนอจาก AI แล้ว");
+        btnApply.disabled = !lastSuggestions?.strategies;
+      }catch(e){
+        console.error(e);
+        setStatus("เกิดข้อผิดพลาด: "+e.message);
+      }finally{
+        btnOptimize.disabled = false;
+      }
+    }
+
+    async function doApply(){
+      try{
+        const parsed = JSON.parse(jsonBox.value || "{}");
+        if(!parsed || typeof parsed!=="object" || !parsed.strategies){
+          alert("JSON ไม่ถูกต้อง หรือไม่มี field strategies");
+          return;
+        }
+        setStatus("กำลัง Apply กลยุทธ์…");
+        btnApply.disabled = true;
+
+        const r = await fetch("/api/apply-strategies", {
+          method: "POST",
+          headers: { "Content-Type":"application/json" },
+          body: JSON.stringify({ strategies: parsed.strategies })
+        });
+        const data = await r.json();
+        if(data.status!=="success") throw new Error(data.message||"Apply ไม่สำเร็จ");
+
+        setStatus("อัปเดต strategies สำเร็จแล้ว ✅");
+        // หลัง Apply เสร็จ โหลดภาพรวมปัจจุบันใหม่ (ให้เห็นผล)
+        loadStats();
+      }catch(e){
+        console.error(e);
+        setStatus("เกิดข้อผิดพลาดตอน Apply: "+e.message);
+      }
+    }
+
+    function validateJSON(){
+      try{
+        const o = JSON.parse(jsonBox.value||"");
+        alert("✅ JSON ถูกต้อง");
+        // อัปเดต diff ตาม JSON ปัจจุบันเทียบกับ current ในระบบ (ถ้ามี)
+        if(currentStats){
+          // เราไม่มี currentStrategies ใน endpoint /api/stats; ง่ายสุดคือเรียก optimize อีกรอบเพื่อดึง currentStrategies ปัจจุบัน
+          // แต่เพื่อความเร็ว จะไม่ทำอะไรเพิ่มตรงนี้
+        }
+      }catch(e){
+        alert("❌ JSON ไม่ถูกต้อง: "+e.message);
+      }
+    }
+
+    toggleOnlyChanged.addEventListener("change", ()=>{
+      try{
+        const cur = (window.__lastCurrent || null);
+        // เราเก็บ currentStrategies ไว้ในคำตอบ /api/ai-optimize ล่าสุด
+        // เพื่อความสะดวก จะ reuse จาก last call
+      }catch{}
+      // เรียก optimize ซ้ำเพื่อรีเฟรช diff แบบง่าย
+      if(lastSuggestions) doOptimize();
+    });
+
+    btnOptimize.addEventListener("click", doOptimize);
+    btnApply.addEventListener("click", doApply);
+    btnValidate.addEventListener("click", validateJSON);
+
+    // เริ่มด้วยภาพรวม EV ปัจจุบัน
+    loadStats();
+  </script>
+</body>
+</html>

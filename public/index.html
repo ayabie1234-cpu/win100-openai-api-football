@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>Win100 – Live Scanner (Dedup + EV/Tier)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body{background:#020617;color:#e5e7eb;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    .card{background:rgba(15,23,42,.95);border-radius:.75rem;border:1px solid rgba(148,163,184,.4)}
+    .pill{padding:.15rem .6rem;border-radius:999px;font-size:.7rem;font-weight:700;display:inline-flex}
+  </style>
+</head>
+<body class="min-h-screen">
+  <header class="w-full border-b border-slate-800 bg-slate-900/80 backdrop-blur">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <span class="text-2xl">⚽</span>
+        <div>
+          <div class="text-sm font-semibold text-emerald-400">Win100 – Live Scanner (EV/CLV/Tier + Dedup)</div>
+          <div class="text-[11px] text-slate-400">สแกนบอลสด | ดูสถิติ | ปรับสูตรด้วย AI</div>
+        </div>
+      </div>
+      <nav class="flex flex-wrap gap-2 text-xs">
+        <a href="/" class="px-3 py-1.5 rounded-full border border-slate-600 bg-slate-800 hover:bg-emerald-500 hover:text-slate-900 transition">🟢 หน้า Scanner สด</a>
+        <a href="/dashboard.html" class="px-3 py-1.5 rounded-full border border-slate-600 bg-slate-800 hover:bg-sky-500 hover:text-slate-900 transition">📊 Dashboard สถิติ</a>
+        <a href="/ai_optimizer.html" class="px-3 py-1.5 rounded-full border border-slate-600 bg-slate-800 hover:bg-violet-500 hover:text-slate-900 transition">🧠 AI Optimizer</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+    <div class="card p-4">
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="text-sm text-slate-200">สแกนบอลสดแบบประหยัดโควต้า (มี Cache/TTL + Dedup)</div>
+        <div class="ml-auto flex items-center gap-2">
+          <label class="text-xs text-slate-300 flex items-center gap-2">
+            <input id="autoRefresh" type="checkbox" class="accent-emerald-500" checked> Auto 20s
+          </label>
+          <button id="btnScan" class="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-900 text-sm font-semibold">🔄 สแกน</button>
+        </div>
+      </div>
+      <div id="status" class="text-xs text-slate-400 mt-2"></div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div class="card p-4">
+        <div class="text-sm font-semibold text-slate-100 mb-2">ตัวกรอง</div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">สูตร</label>
+            <select id="strategyFilter" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-sm">
+              <option value="">ทั้งหมด</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Tier</label>
+            <select id="tierFilter" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-sm">
+              <option value="">ทั้งหมด</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="C">C</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">ขั้นต่ำ Edge</label>
+            <input id="edgeMin" type="number" step="0.001" placeholder="0.02" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-sm">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">ขั้นต่ำ Kelly</label>
+            <input id="kellyMin" type="number" step="0.001" placeholder="0.05" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-sm">
+          </div>
+        </div>
+      </div>
+
+      <div class="card p-4 lg:col-span-2">
+        <div class="text-sm font-semibold text-slate-100 mb-2">Risk วันนี้</div>
+        <div id="riskBox" class="text-sm text-slate-300">—</div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
+      <div class="card p-4"><div class="text-xs text-slate-400">Fixture สด</div><div id="sumFx" class="text-2xl font-bold mt-1">0</div></div>
+      <div class="card p-4"><div class="text-xs text-slate-400">สัญญาณทั้งหมด</div><div id="sumPicks" class="text-2xl font-bold mt-1">0</div></div>
+      <div class="card p-4"><div class="text-xs text-slate-400">ผ่าน Gate</div><div id="sumEdgeOK" class="text-2xl font-bold text-emerald-400 mt-1">0</div></div>
+      <div class="card p-4"><div class="text-xs text-slate-400">Tier A</div><div id="sumTierA" class="text-2xl font-bold text-sky-400 mt-1">0</div></div>
+      <div class="card p-4"><div class="text-xs text-slate-400">Tier B</div><div id="sumTierB" class="text-2xl font-bold text-indigo-300 mt-1">0</div></div>
+      <div class="card p-4"><div class="text-xs text-slate-400">Tier C</div><div id="sumTierC" class="text-2xl font-bold text-violet-300 mt-1">0</div></div>
+    </div>
+
+    <div class="card p-4">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-sm font-semibold text-slate-100">รายการสัญญาณล่าสุด (Dedup แล้ว)</h2>
+        <div class="text-xs text-slate-400">โชว์เฉพาะ “ล่าสุด/คู่/สูตร/ฝั่ง”</div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs text-left">
+          <thead class="bg-slate-800/70 text-slate-200">
+            <tr>
+              <th class="px-2 py-2">เวลา</th>
+              <th class="px-2 py-2">ลีก</th>
+              <th class="px-2 py-2">คู่</th>
+              <th class="px-2 py-2">สูตร</th>
+              <th class="px-2 py-2">ฝั่ง</th>
+              <th class="px-2 py-2">Tier</th>
+              <th class="px-2 py-2">Stake</th>
+              <th class="px-2 py-2">Edge</th>
+              <th class="px-2 py-2">Kelly</th>
+              <th class="px-2 py-2">ราคาเข้า</th>
+              <th class="px-2 py-2">สกอร์/นาที</th>
+              <th class="px-2 py-2 text-center">สถานะ</th>
+            </tr>
+          </thead>
+          <tbody id="tblBody" class="divide-y divide-slate-800"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card p-4">
+      <div class="text-sm font-semibold text-slate-100 mb-2">สรุปจาก AI (ล่าสุดไม่เกิน 6 รายการ)</div>
+      <div id="aiBox" class="text-sm text-slate-300 space-y-2">—</div>
+    </div>
+  </main>
+
+  <script>
+    const btnScan = document.getElementById("btnScan");
+    const autoRefresh = document.getElementById("autoRefresh");
+    const statusBox = document.getElementById("status");
+    const strategyFilter = document.getElementById("strategyFilter");
+    const tierFilter = document.getElementById("tierFilter");
+    const edgeMin = document.getElementById("edgeMin");
+    const kellyMin = document.getElementById("kellyMin");
+    const riskBox = document.getElementById("riskBox");
+    const tblBody = document.getElementById("tblBody");
+
+    const sumFx = document.getElementById("sumFx");
+    const sumPicks = document.getElementById("sumPicks");
+    const sumEdgeOK = document.getElementById("sumEdgeOK");
+    const sumTierA = document.getElementById("sumTierA");
+    const sumTierB = document.getElementById("sumTierB");
+    const sumTierC = document.getElementById("sumTierC");
+
+    const STRATEGY_LABELS_TH = {
+      attack_pressure: "สูตรเกมบุก – กดดันหนัก",
+      one_side_attack: "สูตรเกมบุก – บุกข้างเดียว",
+      anti_price: "สูตรราคาตลาด",
+      over75: "สูง 75+ (Over/xG)",
+      smart_underdog: "สูตรรองฉลาด",
+      ah_1_5: "รองแต้มต่อ +1.5",
+      corner_storm: "พายุเตะมุม",
+      pp_index: "PP Index",
+      favorite_comeback: "เต็งโดนนำลุ้นกลับตัว",
+      goal_85: "ประตูท้ายเกม 85+",
+      anti_book: "สวนบ่อน",
+      over_momentum: "สูงตามโมเมนตัม",
+      live_xg: "Live xG ประตูมาแน่",
+    };
+    function label(k){ return STRATEGY_LABELS_TH[k] || k; }
+    function fmt(x,d=2){ return (x===null||x===undefined||isNaN(x))? "–" : Number(x).toFixed(d); }
+    function setStatus(s){ statusBox.textContent = s || ""; }
+
+    let timer=null, lastPicks=[];
+
+    function updateRisk(r){
+      if(!r){ riskBox.textContent = "—"; return; }
+      const tag = r.paused ? "PAUSED" : (r.stakeScale<1 ? `STAKE x${r.stakeScale}` : "ACTIVE");
+      riskBox.innerHTML = `
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div class="border border-slate-700 rounded-lg p-3"><div class="text-xs text-slate-400">วันที่</div><div class="text-lg font-semibold">${r.date||"—"}</div></div>
+          <div class="border border-slate-700 rounded-lg p-3"><div class="text-xs text-slate-400">PnL วันนี้</div><div class="text-lg font-semibold">${fmt(r.pnl,2)}u</div></div>
+          <div class="border border-slate-700 rounded-lg p-3"><div class="text-xs text-slate-400">แพ้ติด</div><div class="text-lg font-semibold">${r.consecLose||0}</div></div>
+          <div class="border border-slate-700 rounded-lg p-3"><div class="text-xs text-slate-400">สถานะ</div><div class="text-lg font-semibold">${tag}</div></div>
+        </div>`;
+    }
+
+    function render(picks, meta){
+      // เดดุปฝั่งแสดง: เอา “ล่าสุด” ต่อ key (fixture|strategy|side)
+      const latestByKey = new Map();
+      for(const p of (picks||[])){
+        const k = `${p.fixtureId}|${p.strategy}|${p.betSide}`;
+        const prev = latestByKey.get(k);
+        if(!prev || (p.ts||"") > (prev.ts||"")) latestByKey.set(k, p);
+      }
+      const deduped = Array.from(latestByKey.values());
+
+      // เติม dropdown strategy
+      const keys = Array.from(new Set(deduped.map(p=>p.strategy))).sort();
+      strategyFilter.innerHTML = '<option value="">ทั้งหมด</option>' + keys.map(k=>`<option value="${k}">${label(k)}</option>`).join("");
+
+      // สรุป
+      sumFx.textContent = meta?.totalFixtures ?? 0;
+      sumPicks.textContent = picks.length;
+      sumEdgeOK.textContent = picks.filter(p=>p.edge_ok===true).length;
+      sumTierA.textContent = picks.filter(p=>p.tier==="A").length;
+      sumTierB.textContent = picks.filter(p=>p.tier==="B").length;
+      sumTierC.textContent = picks.filter(p=>p.tier==="C").length;
+
+      // กรอง
+      const strat = strategyFilter.value || "";
+      const t = tierFilter.value || "";
+      const eMin = parseFloat(edgeMin.value);
+      const kMin = parseFloat(kellyMin.value);
+      const filtered = deduped.filter(p=>{
+        if (strat && p.strategy !== strat) return false;
+        if (t && p.tier !== t) return false;
+        if (!isNaN(eMin) && p.edge!=null && p.edge < eMin) return false;
+        if (!isNaN(kMin) && p.kelly!=null && p.kelly < kMin) return false;
+        return true;
+      }).sort((a,b)=> (a.ts||"").localeCompare(b.ts||""));
+
+      // วาดตาราง
+      tblBody.innerHTML = "";
+      for(const p of filtered){
+        let pillClass="bg-amber-500/20 text-amber-300 border-amber-400/60", pillText=p.result||"PENDING";
+        if (p.result==="WIN"){ pillClass="bg-emerald-500/20 text-emerald-300 border-emerald-400/70"; }
+        if (p.result==="LOSE"){ pillClass="bg-rose-500/20 text-rose-300 border-rose-400/70"; }
+
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-slate-800/60";
+        tr.innerHTML = `
+          <td class="px-2 py-1">${(p.ts||"").substring(11,16)||"-"}</td>
+          <td class="px-2 py-1">${p.league||"-"}</td>
+          <td class="px-2 py-1">${p.home||"?"} vs ${p.away||"?"}</td>
+          <td class="px-2 py-1">${label(p.strategy||"-")}</td>
+          <td class="px-2 py-1">${p.betSide||"-"}</td>
+          <td class="px-2 py-1">${p.tier||"-"}</td>
+          <td class="px-2 py-1">${p.stakeUnits!=null? p.stakeUnits.toFixed(2) : "–"}</td>
+          <td class="px-2 py-1">${p.edge!=null? p.edge.toFixed(4) : "–"}</td>
+          <td class="px-2 py-1">${p.kelly!=null? p.kelly.toFixed(4) : "–"}</td>
+          <td class="px-2 py-1">${p.priceTaken!=null? p.priceTaken.toFixed(2) : "–"}</td>
+          <td class="px-2 py-1">${p.scoreAtScan||"-"} / ${p.minuteAtScan??"-"}'</td>
+          <td class="px-2 py-1 text-center"><span class="pill border ${pillClass}">${pillText}</span></td>
+        `;
+        tblBody.appendChild(tr);
+      }
+      if(!filtered.length){
+        const tr = document.createElement("tr");
+        tr.innerHTML = '<td colspan="12" class="px-2 py-3 text-center text-slate-400 text-xs">ไม่มีสัญญาณตามเงื่อนไข</td>';
+        tblBody.appendChild(tr);
+      }
+
+      // AI box (ล่าสุด 6 รายการ)
+      const aiBox = document.getElementById("aiBox");
+      aiBox.innerHTML = "";
+      const top = picks.slice(-6);
+      if (!top.length) aiBox.textContent = "—";
+      for(const p of top){
+        const div = document.createElement("div");
+        div.className = "border border-slate-700 rounded-lg p-3";
+        div.innerHTML = `<div class="text-[11px] text-slate-400 mb-1">${(p.ts||"").substring(11,16)||"-"} • ${p.league||"-"} • ${p.home} vs ${p.away}</div>
+                         <div class="text-sm whitespace-pre-wrap">${p.ai||"—"}</div>`;
+        aiBox.appendChild(div);
+      }
+    }
+
+    async function scanNow(){
+      try{
+        setStatus("กำลังสแกน…");
+        btnScan.disabled = true;
+        const r = await fetch("/api/scan");
+        const data = await r.json();
+        if (data.status !== "success") throw new Error(data.message || "สแกนไม่สำเร็จ");
+
+        lastPicks = data.picks || [];
+        updateRisk(data.risk || null);
+        render(lastPicks, { totalFixtures: data.totalFixtures, totalPicks: data.totalPicks });
+        setStatus(`สแกนแล้ว: Fixtures ${data.totalFixtures||0} • Picks ${data.totalPicks||0}`);
+      }catch(e){
+        console.error(e); setStatus("เกิดข้อผิดพลาด: " + e.message);
+      }finally{ btnScan.disabled = false; }
+    }
+
+    function startTimer(){
+      if (timer) clearInterval(timer);
+      if (autoRefresh.checked) timer = setInterval(scanNow, 20000);
+    }
+
+    btnScan.addEventListener("click", scanNow);
+    strategyFilter.addEventListener("change", ()=> render(lastPicks, {}));
+    tierFilter.addEventListener("change", ()=> render(lastPicks, {}));
+    edgeMin.addEventListener("input", ()=> render(lastPicks, {}));
+    kellyMin.addEventListener("input", ()=> render(lastPicks, {}));
+    autoRefresh.addEventListener("change", startTimer);
+
+    scanNow(); startTimer();
+  </script>
+</body>
+</html>

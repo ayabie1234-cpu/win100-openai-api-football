@@ -1,0 +1,67 @@
+{
+  "smart_underdog": {
+    "label": "ทีมรองที่ฉลาด",
+    "enabled": false,
+    "params": {}
+  },
+  "attack_pressure": {
+    "label": "บุกหนัก",
+    "enabled": false,
+    "params": {
+      "minuteMin": 25,
+      "minuteMax": 70,
+      "sogDiffMin": 4
+    }
+  },
+  "live_xg": {
+    "label": "xG สด",
+    "enabled": false,
+    "params": {
+      "xgDiffMin": 0.4,
+      "minuteMin": 35,
+      "minuteMax": 80
+    }
+  },
+  "anti_price": {
+    "label": "ราคาต่ำผิดปกติ",
+    "enabled": false,
+    "params": {}
+  },
+  "ah_1_5": {
+    "label": "แฮนดิแคป 1.5",
+    "enabled": true,
+    "params": {}
+  },
+  "over_momentum": {
+    "label": "โมเมนตัมสูง",
+    "enabled": true,
+    "params": {
+      "momentumScoreMin": 0.52,
+      "minuteMin": 30,
+      "minuteMax": 75
+    }
+  },
+  "over75": {
+    "label": "โอกาสยิงเกิน 0.75",
+    "enabled": false,
+    "params": {}
+  },
+  "pressure_flip_goal": {
+    "label": "กดดันจนเปลี่ยนเกม",
+    "enabled": true,
+    "params": {
+      "pressureMin": 0.56,
+      "minuteMin": 40,
+      "minuteMax": 85
+    }
+  },
+  "xg_imbalance_surge": {
+    "label": "xG ความต่างพุ่งแรง",
+    "enabled": true,
+    "params": {
+      "xgDiffSurgeMin": 0.38,
+      "minuteMin": 30,
+      "minuteMax": 80
+    }
+  }
+}

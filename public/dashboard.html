@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>Win100 – Dashboard (หลายสูตร + กราฟ WinRate/ROI/CLV)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    body{background:#020617;color:#e5e7eb;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    .card{background:rgba(15,23,42,.95);border-radius:.75rem;border:1px solid rgba(148,163,184,.4)}
+    .pill{padding:.2rem .6rem;border-radius:999px;font-size:.72rem;font-weight:700;display:inline-flex}
+    .mono{font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+    th, td { white-space: nowrap; }
+    select[multiple]{ min-width: 220px; min-height: 110px; }
+  </style>
+</head>
+<body class="min-h-screen">
+  <!-- เมนู -->
+  <header class="w-full border-b border-slate-800 bg-slate-900/80 backdrop-blur">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <span class="text-2xl">📊</span>
+        <div>
+          <div class="text-sm font-semibold text-sky-400">Win100 – Dashboard (รายวัน/สัปดาห์ + กราฟหลายสูตร)</div>
+          <div class="text-[11px] text-slate-400">เลือกวัน (โซนเวลาไทย) • ตาราง + Multi-Charts • ROI/CLV ครบ</div>
+        </div>
+      </div>
+      <nav class="flex flex-wrap gap-2 text-xs">
+        <a href="/" class="px-3 py-1.5 rounded-full border border-slate-600 bg-slate-800 hover:bg-emerald-500 hover:text-slate-900 transition">🟢 หน้า Scanner สด</a>
+        <a href="/dashboard.html" class="px-3 py-1.5 rounded-full border border-slate-600 bg-slate-800 hover:bg-sky-500 hover:text-slate-900 transition">📊 Dashboard สถิติ</a>
+        <a href="/ai_optimizer.html" class="px-3 py-1.5 rounded-full border border-slate-600 bg-slate-800 hover:bg-violet-500 hover:text-slate-900 transition">🧠 AI Optimizer</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+    <!-- ควบคุม -->
+    <div class="card p-4">
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="text-sm text-slate-200">เลือกวัน (เวลาไทย)</div>
+        <input id="datePicker" type="date" class="bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-sm" />
+        <button id="btnLoad" class="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-900 text-sm font-semibold">🔄 โหลดสถิติ</button>
+        <div class="ml-auto text-xs text-slate-400" id="status"></div>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div class="card p-4"><div class="text-xs text-slate-400">จำนวนทั้งหมด</div><div id="sumAll" class="text-2xl font-bold mt-1">0</div></div>
+      <div class="card p-4"><div class="text-xs text-slate-400">WIN</div><div id="sumWin" class="text-2xl font-bold text-emerald-400 mt-1">0</div></div>
+      <div class="card p-4"><div class="text-xs text-slate-400">LOSE</div><div id="sumLose" class="text-2xl font-bold text-rose-400 mt-1">0</div></div>
+      <div class="card p-4"><div class="text-xs text-slate-400">PENDING</div><div id="sumPending" class="text-2xl font-bold text-amber-300 mt-1">0</div></div>
+      <div class="card p-4"><div class="text-xs text-slate-400">Win Rate</div><div id="sumWR" class="text-2xl font-bold text-sky-300 mt-1">0%</div></div>
+    </div>
+
+    <!-- KPI -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="card p-4">
+        <div class="text-xs text-slate-400">ROI/บิล (เฉลี่ยเฉพาะที่ตัดสินแล้ว)</div>
+        <div id="roiAvg" class="text-2xl font-bold mt-1">0.0000</div>
+      </div>
+      <div class="card p-4">
+        <div class="text-xs text-slate-400">CLV เฉลี่ย (เปอร์เซ็นต์)</div>
+        <div id="clvAvg" class="text-2xl font-bold mt-1">—</div>
+      </div>
+      <div class="card p-4">
+        <div class="text-xs text-slate-400">โน้ต</div>
+        <div class="text-sm text-slate-300">เลือกหลายสูตรในกรอบด้านล่าง แล้วสลับ “รายวัน/รายสัปดาห์” ได้</div>
+      </div>
+    </div>
+
+    <!-- การ์ดสรุป “รายสูตร (วันนั้น)” -->
+    <div class="card p-4">
+      <div class="text-sm font-semibold text-slate-100 mb-3">สรุปรายสูตร (เฉพาะวันนั้น)</div>
+      <div id="byStrategyWrap" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs"></div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="card p-4">
+      <div class="flex flex-wrap items-start gap-4 mb-3">
+        <div class="text-sm font-semibold text-slate-100">กราฟตามช่วงเวลา</div>
+        <div class="text-xs text-slate-300">เลือกสูตร (กดคีย์ Ctrl/Cmd เพื่อเลือกหลายสูตร):</div>
+        <select id="strategyMulti" class="bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-xs" multiple></select>
+        <div class="text-xs text-slate-300">ช่วง:</div>
+        <select id="granSelect" class="bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-xs">
+          <option value="daily">รายวัน</option>
+          <option value="weekly">รายสัปดาห์</option>
+        </select>
+        <div class="text-xs text-slate-400 ml-auto">* Pending ไม่นับใน WinRate/ROI</div>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div>
+          <div class="text-xs text-slate-300 mb-1">Win Rate %</div>
+          <canvas id="chartWR" height="150"></canvas>
+        </div>
+        <div>
+          <div class="text-xs text-slate-300 mb-1">ROI/บิล (เฉลี่ย)</div>
+          <canvas id="chartROI" height="150"></canvas>
+        </div>
+        <div>
+          <div class="text-xs text-slate-300 mb-1">CLV% (เฉลี่ย)</div>
+          <canvas id="chartCLV" height="150"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ตารางรายการของวัน -->
+    <div class="card p-4">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-sm font-semibold text-slate-100">รายการคู่ที่เข้าเงื่อนไขในวันนั้น</h2>
+        <div class="text-xs text-slate-400 flex items-center gap-3">
+          สถานะ:
+          <button class="px-2 py-1 rounded-md border border-slate-600 hover:bg-slate-700" data-status="">ALL</button>
+          <button class="px-2 py-1 rounded-md border border-slate-600 hover:bg-slate-700" data-status="WIN">WIN</button>
+          <button class="px-2 py-1 rounded-md border border-slate-600 hover:bg-slate-700" data-status="LOSE">LOSE</button>
+          <button class="px-2 py-1 rounded-md border border-slate-600 hover:bg-slate-700" data-status="PENDING">PENDING</button>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs text-left">
+          <thead class="bg-slate-800/70 text-slate-200">
+            <tr>
+              <th class="px-2 py-2">เวลา</th>
+              <th class="px-2 py-2">ลีก</th>
+              <th class="px-2 py-2">คู่</th>
+              <th class="px-2 py-2">สูตร</th>
+              <th class="px-2 py-2">ฝั่ง</th>
+              <th class="px-2 py-2">ราคาเข้า</th>
+              <th class="px-2 py-2">Closing</th>
+              <th class="px-2 py-2">CLV%</th>
+              <th class="px-2 py-2">Edge</th>
+              <th class="px-2 py-2">Kelly</th>
+              <th class="px-2 py-2">Stake</th>
+              <th class="px-2 py-2">Tier</th>
+              <th class="px-2 py-2 text-center">สถานะ</th>
+              <th class="px-2 py-2">ROI</th>
+            </tr>
+          </thead>
+          <tbody id="tblBody" class="divide-y divide-slate-800"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function getTodayInTZ(tz="Asia/Bangkok"){
+      const d = new Date();
+      const [y,m,dd] = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year:"numeric", month:"2-digit", day:"2-digit" })
+        .formatToParts(d).reduce((acc,p)=>{ if(p.type==="year")acc[0]=p.value; if(p.type==="month")acc[1]=p.value; if(p.type==="day")acc[2]=p.value; return acc; }, []);
+      return `${y}-${m}-${dd}`;
+    }
+    function fmt(x,d=2){ return (x===null||x===undefined||isNaN(x))? "—" : Number(x).toFixed(d); }
+    function wr(win,lose){ const t=(win||0)+(lose||0); return t? Math.round((win*100)/t):0; }
+    function setStatus(s){ document.getElementById("status").textContent = s||""; }
+
+    const STRATEGY_LABELS_TH = {
+      attack_pressure: "สูตรเกมบุก – กดดันหนัก",
+      one_side_attack: "สูตรเกมบุก – บุกข้างเดียว",
+      anti_price: "สูตรราคาตลาด",
+      over75: "สูง 75+ (Over/xG)",
+      smart_underdog: "สูตรรองฉลาด",
+      ah_1_5: "รองแต้มต่อ +1.5",
+      corner_storm: "พายุเตะมุม",
+      pp_index: "PP Index",
+      favorite_comeback: "เต็งโดนนำลุ้นกลับตัว",
+      goal_85: "ประตูท้ายเกม 85+",
+      anti_book: "สวนบ่อน",
+      over_momentum: "สูงตามโมเมนตัม",
+      live_xg: "Live xG ประตูมาแน่",
+    };
+    function label(k){ return STRATEGY_LABELS_TH[k] || k; }
+
+    const datePicker = document.getElementById("datePicker");
+    const btnLoad = document.getElementById("btnLoad");
+    const tblBody = document.getElementById("tblBody");
+    const byStrategyWrap = document.getElementById("byStrategyWrap");
+    const sumAll = document.getElementById("sumAll");
+    const sumWin = document.getElementById("sumWin");
+    const sumLose = document.getElementById("sumLose");
+    const sumPending = document.getElementById("sumPending");
+    const sumWR = document.getElementById("sumWR");
+    const roiAvg = document.getElementById("roiAvg");
+    const clvAvg = document.getElementById("clvAvg");
+
+    const strategyMulti = document.getElementById("strategyMulti");
+    const granSelect = document.getElementById("granSelect");
+
+    let allPicks = [];
+    let statusFilter = "";
+    let overall = { timelineByDate:{}, timelineByWeek:{}, byStrategy:{} };
+
+    // CHARTS
+    let chartWR, chartROI, chartCLV;
+    function destroyCharts(){ chartWR && chartWR.destroy(); chartROI && chartROI.destroy(); chartCLV && chartCLV.destroy(); }
+
+    function palette(i){
+      // โทนกลางๆ ไม่กำหนดสีเองใน Chart.js ก็ได้ แต่ทำไว้กันดูไม่ซ้ำ
+      const base = [
+        "#60a5fa","#34d399","#f472b6","#f59e0b","#a78bfa",
+        "#22d3ee","#fb7185","#84cc16","#f97316","#38bdf8"
+      ];
+      return base[i % base.length];
+    }
+
+    function finalizeSeriesFromTimeline(map, strategies){
+      // map[bucket][strat] = { total,win,lose,roiAvg,clvAvg,... }
+      const labels = Object.keys(map).sort();
+      const seriesWR = [], seriesROI = [], seriesCLV = [];
+
+      strategies.forEach((stratKey, idx)=>{
+        const wrs = [], rois = [], clvs = [];
+        labels.forEach(bucket=>{
+          const row = map[bucket]?.[stratKey];
+          if (!row){ wrs.push(0); rois.push(0); clvs.push(null); return; }
+          const w = row.win || 0, l = row.lose || 0;
+          const wrp = (w+l) ? Math.round((w*100)/(w+l)) : 0;
+          wrs.push(wrp);
+          rois.push(row.roiAvg || 0);
+          clvs.push(row.clvAvg!=null ? +row.clvAvg : null);
+        });
+        const color = palette(idx);
+        seriesWR.push({ label: label(stratKey), data: wrs, borderWidth: 2, pointRadius: 2, borderColor: color });
+        seriesROI.push({ label: label(stratKey), data: rois, borderWidth: 2, pointRadius: 2, borderColor: color });
+        seriesCLV.push({ label: label(stratKey), data: clvs, borderWidth: 2, pointRadius: 2, borderColor: color });
+      });
+
+      return { labels, seriesWR, seriesROI, seriesCLV };
+    }
+
+    function renderCharts(){
+      const gran = granSelect.value;
+      const map = gran === "weekly" ? overall.timelineByWeek : overall.timelineByDate;
+      if (!map || !Object.keys(map).length){
+        destroyCharts();
+        const ctx1 = document.getElementById("chartWR").getContext("2d");
+        const ctx2 = document.getElementById("chartROI").getContext("2d");
+        const ctx3 = document.getElementById("chartCLV").getContext("2d");
+        chartWR = new Chart(ctx1, { type:"line", data:{labels:[],datasets:[]}, options:{} });
+        chartROI = new Chart(ctx2, { type:"line", data:{labels:[],datasets:[]}, options:{} });
+        chartCLV = new Chart(ctx3, { type:"line", data:{labels:[],datasets:[]}, options:{} });
+        return;
+      }
+
+      // อ่านสูตรที่เลือก
+      const selected = Array.from(strategyMulti.selectedOptions).map(o=>o.value);
+      if (!selected.length){
+        destroyCharts();
+        const ctx1 = document.getElementById("chartWR").getContext("2d");
+        const ctx2 = document.getElementById("chartROI").getContext("2d");
+        const ctx3 = document.getElementById("chartCLV").getContext("2d");
+        chartWR = new Chart(ctx1, { type:"line", data:{labels:[],datasets:[]}, options:{} });
+        chartROI = new Chart(ctx2, { type:"line", data:{labels:[],datasets:[]}, options:{} });
+        chartCLV = new Chart(ctx3, { type:"line", data:{labels:[],datasets:[]}, options:{} });
+        return;
+      }
+
+      const { labels, seriesWR, seriesROI, seriesCLV } = finalizeSeriesFromTimeline(map, selected);
+
+      destroyCharts();
+      const ctx1 = document.getElementById("chartWR").getContext("2d");
+      chartWR = new Chart(ctx1, { type:"line", data:{ labels, datasets: seriesWR },
+        options:{ responsive:true, scales:{ y:{ beginAtZero:true, max:100 } }, plugins:{ legend:{ labels:{ color:"#cbd5e1" }}} } });
+
+      const ctx2 = document.getElementById("chartROI").getContext("2d");
+      chartROI = new Chart(ctx2, { type:"line", data:{ labels, datasets: seriesROI },
+        options:{ responsive:true, scales:{ y:{ beginAtZero:true } }, plugins:{ legend:{ labels:{ color:"#cbd5e1" }}} } });
+
+      const ctx3 = document.getElementById("chartCLV").getContext("2d");
+      chartCLV = new Chart(ctx3, { type:"line", data:{ labels, datasets: seriesCLV },
+        options:{ responsive:true, scales:{ y:{ beginAtZero:true } }, plugins:{ legend:{ labels:{ color:"#cbd5e1" }}} } });
+    }
+
+    async function loadOverall(){
+      try{
+        const r = await fetch("/api/stats"); // รวมทุกวัน
+        const data = await r.json();
+        if (data.status !== "success") return;
+
+        overall = {
+          timelineByDate: data.timelineByDate || {},
+          timelineByWeek: data.timelineByWeek || {},
+          byStrategy: data.byStrategy || {}
+        };
+
+        // เติมตัวเลือกสูตร (ทั้งหมด) ใน multi-select
+        const keys = Object.keys(overall.byStrategy || {}).sort();
+        strategyMulti.innerHTML = keys.map(k=>`<option value="${k}">${label(k)}</option>`).join("");
+
+        // เลือกค่าเริ่มต้น 3 สูตรแรก (ถ้ามี)
+        Array.from(strategyMulti.options).slice(0,3).forEach(op => op.selected = true);
+
+        renderCharts();
+      }catch(e){ console.error(e); }
+    }
+
+    function renderSummary(s){
+      sumAll.textContent = s.total || 0;
+      sumWin.textContent = s.win || 0;
+      sumLose.textContent = s.lose || 0;
+      sumPending.textContent = s.pending || 0;
+      const winRate = (s.win||0) + (s.lose||0) ? Math.round((s.win*100)/((s.win||0)+(s.lose||0))) : 0;
+      sumWR.textContent = `${winRate}%`;
+      roiAvg.textContent = fmt(s.roiAvg,4);
+      clvAvg.textContent = (s.clvAvg===null||s.clvAvg===undefined) ? "—" : `${fmt(s.clvAvg,2)}%`;
+    }
+
+    function renderByStrategy(map){
+      byStrategyWrap.innerHTML = "";
+      const keys = Object.keys(map).sort();
+      if(!keys.length){
+        byStrategyWrap.innerHTML = '<div class="text-xs text-slate-400">— ยังไม่มีข้อมูล —</div>';
+        return;
+      }
+      for(const k of keys){
+        const v = map[k];
+        const wrate = wr(v.win||0, v.lose||0);
+        const card = document.createElement("div");
+        card.className = "border border-slate-700 rounded-lg px-3 py-2 bg-slate-900/60";
+        card.innerHTML = `
+          <div class="font-semibold text-sky-300 mb-1">${label(k)}</div>
+          <div class="grid grid-cols-2 gap-1 text-[11px] text-slate-300">
+            <div>เล่น: ${v.total||0}</div>
+            <div>WinRate: ${wrate}%</div>
+            <div>ROI/บิล: ${fmt(v.roiAvg,4)}</div>
+            <div>CLV เฉลี่ย: ${v.clvAvg==null ? "—" : (fmt(v.clvAvg,2)+"%")}</div>
+          </div>`;
+        byStrategyWrap.appendChild(card);
+      }
+    }
+
+    function renderTable(){
+      const filtered = (allPicks||[]).filter(p => !statusFilter || p.result === statusFilter)
+        .sort((a,b)=> (a.ts||"").localeCompare(b.ts||""));
+
+      tblBody.innerHTML = "";
+      for(const p of filtered){
+        let pillClass="bg-amber-500/20 text-amber-300 border-amber-400/60", pillText=p.result||"PENDING";
+        if (p.result==="WIN"){ pillClass="bg-emerald-500/20 text-emerald-300 border-emerald-400/70"; }
+        if (p.result==="LOSE"){ pillClass="bg-rose-500/20 text-rose-300 border-rose-400/70"; }
+
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-slate-800/60";
+        tr.innerHTML = `
+          <td class="px-2 py-1">${(p.ts||"").substring(11,16)||"-"}</td>
+          <td class="px-2 py-1">${p.league||"-"}</td>
+          <td class="px-2 py-1">${p.home||"?"} vs ${p.away||"?"}</td>
+          <td class="px-2 py-1">${label(p.strategy||"-")}</td>
+          <td class="px-2 py-1">${p.betSide||"-"}</td>
+          <td class="px-2 py-1">${p.priceTaken!=null ? p.priceTaken.toFixed(2) : "—"}</td>
+          <td class="px-2 py-1">${p.closingPrice!=null ? p.closingPrice.toFixed(2) : "—"}</td>
+          <td class="px-2 py-1">${p.clvPct!=null ? p.clvPct.toFixed(2)+"%" : "—"}</td>
+          <td class="px-2 py-1">${p.edge!=null ? p.edge.toFixed(4) : "—"}</td>
+          <td class="px-2 py-1">${p.kelly!=null ? p.kelly.toFixed(4) : "—"}</td>
+          <td class="px-2 py-1">${p.stakeUnits!=null ? p.stakeUnits.toFixed(2) : "—"}</td>
+          <td class="px-2 py-1">${p.tier||"-"}</td>
+          <td class="px-2 py-1 text-center"><span class="pill border ${pillClass}">${pillText}</span></td>
+          <td class="px-2 py-1">${p.roi!=null ? p.roi.toFixed(4) : "—"}</td>
+        `;
+        tblBody.appendChild(tr);
+      }
+
+      if(!filtered.length){
+        const tr = document.createElement("tr");
+        tr.innerHTML = '<td colspan="14" class="px-2 py-3 text-center text-slate-400 text-xs">ไม่มีรายการตามตัวกรอง</td>';
+        tblBody.appendChild(tr);
+      }
+    }
+
+    async function loadStatsByDate(){
+      const d = datePicker.value || getTodayInTZ("Asia/Bangkok");
+      setStatus("กำลังโหลด…");
+      try{
+        const r = await fetch(`/api/stats?date=${d}`);
+        const data = await r.json();
+        if (data.status !== "success") throw new Error(data.message || "โหลดสถิติไม่สำเร็จ");
+
+        allPicks = data.picks || [];
+        renderSummary(data.summary || {});
+        renderByStrategy(data.byStrategy || {});
+        renderTable();
+
+        setStatus(`วันที่ ${d} — รายการทั้งหมด ${data.summary?.total || 0}`);
+      }catch(e){
+        console.error(e);
+        setStatus("เกิดข้อผิดพลาด: " + e.message);
+      }
+    }
+
+    // Events
+    document.querySelectorAll('[data-status]').forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        statusFilter = btn.getAttribute("data-status") || "";
+        renderTable();
+      });
+    });
+    granSelect.addEventListener("change", renderCharts);
+    strategyMulti.addEventListener("change", renderCharts);
+    btnLoad.addEventListener("click", loadStatsByDate);
+
+    // Init
+    datePicker.value = getTodayInTZ("Asia/Bangkok");
+    loadStatsByDate();
+    loadOverall();
+  </script>
+</body>
+</html>
