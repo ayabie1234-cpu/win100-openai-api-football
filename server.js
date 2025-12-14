@@ -1,26 +1,35 @@
-// ============================================
-// Win100 Live Scanner – Server (CommonJS)
-// API-Football + OpenAI + Odds + Stats + AI Optimizer
-// ============================================
+// ================================
+// server.js – Win100 (Render + Postgres)
+// ================================
 
 require("dotenv").config();
-// ---- Postgres (Render) ----
+const express = require("express");
+const cors = require("cors");
 const { Pool } = require("pg");
 
-const DATABASE_URL = process.env.DATABASE_URL || "";
-const USE_DB = !!DATABASE_URL;
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-const pool = USE_DB
+// ---------- Middleware ----------
+app.use(cors());
+app.use(express.json({ limit: "2mb" }));
+
+// ---------- Postgres ----------
+const hasDb = !!process.env.DATABASE_URL;
+
+const pool = hasDb
   ? new Pool({
-      connectionString: DATABASE_URL,
+      connectionString: process.env.DATABASE_URL,
       ssl: { rejectUnauthorized: false },
     })
   : null;
 
-async function initDb() {
+// ---------- Init DB ----------
+async function ensureTables() {
   if (!pool) return;
+
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS win100_picks (
+    CREATE TABLE IF NOT EXISTS scan_logs (
       id BIGSERIAL PRIMARY KEY,
       ts TIMESTAMPTZ,
       fixture_id BIGINT,
@@ -34,15 +43,129 @@ async function initDb() {
       minute_at_scan INT,
       confidence_score NUMERIC,
       confidence_label TEXT,
+      ou_line NUMERIC,
       result TEXT,
       ai TEXT,
-      raw JSONB NOT NULL,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      created_at TIMESTAMPTZ DEFAULT NOW()
     );
   `);
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_win100_picks_ts ON win100_picks (ts DESC);`);
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_win100_picks_fixture ON win100_picks (fixture_id);`);
 }
+
+ensureTables()
+  .then(() => console.log("✅ Postgres ready"))
+  .catch(err => console.error("❌ DB init error", err));
+
+// ---------- Utils ----------
+async function insertScanLog(row) {
+  if (!pool) return;
+
+  const q = `
+    INSERT INTO scan_logs (
+      ts, fixture_id, league, home, away, score_at_scan,
+      strategy, bet_type, bet_side, minute_at_scan,
+      confidence_score, confidence_label, ou_line,
+      result, ai
+    )
+    VALUES (
+      $1,$2,$3,$4,$5,$6,
+      $7,$8,$9,$10,
+      $11,$12,$13,
+      $14,$15
+    )
+  `;
+
+  const v = [
+    row.ts ? new Date(row.ts) : null,
+    row.fixtureId ?? null,
+    row.league ?? null,
+    row.home ?? null,
+    row.away ?? null,
+    row.scoreAtScan ?? null,
+    row.strategy ?? null,
+    row.betType ?? null,
+    row.betSide ?? null,
+    row.minuteAtScan ?? null,
+    row.confidenceScore ?? null,
+    row.confidenceLabel ?? null,
+    row.ouLine ?? null,
+    row.result ?? "PENDING",
+    row.ai ?? null,
+  ];
+
+  await pool.query(q, v);
+}
+
+// ================================
+// ROUTES
+// ================================
+
+// ---------- Health ----------
+app.get("/", (req, res) => {
+  res.send("Win100 API is running");
+});
+
+// ---------- DB Ping ----------
+app.get("/api/db-ping", async (req, res) => {
+  try {
+    if (!pool) {
+      return res.status(500).json({ ok: false, error: "DATABASE_URL not set" });
+    }
+    const r = await pool.query("SELECT NOW() as now");
+    res.json({ ok: true, now: r.rows[0].now });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// ---------- Save Log (แทนไฟล์ในเครื่อง) ----------
+app.post("/api/log", async (req, res) => {
+  try {
+    const body = req.body;
+
+    if (Array.isArray(body)) {
+      for (const row of body) {
+        await insertScanLog(row);
+      }
+    } else {
+      await insertScanLog(body);
+    }
+
+    res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// ---------- Get Logs (ใช้กับ Dashboard) ----------
+app.get("/api/logs", async (req, res) => {
+  try {
+    if (!pool) {
+      return res.status(500).json({ ok: false, error: "DATABASE_URL not set" });
+    }
+
+    const limit = Math.min(parseInt(req.query.limit || "200", 10), 1000);
+
+    const r = await pool.query(
+      `SELECT *
+       FROM scan_logs
+       ORDER BY COALESCE(ts, created_at) DESC
+       LIMIT $1`,
+      [limit]
+    );
+
+    res.json({ ok: true, rows: r.rows });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// ================================
+// START SERVER
+// ================================
+app.listen(PORT, () => {
+  console.log(`🚀 Win100 server running on port ${PORT}`);
+});
 
 const express = require("express");
 const axios = require("axios");
