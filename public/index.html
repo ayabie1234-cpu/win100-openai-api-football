@@ -3,656 +3,734 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Win100 – Live Scanner (EV/CLV/Tier + Dedup)</title>
-
+  <title>Win100 – Live Scanner</title>
   <style>
     :root{
-      --bg0:#060b17;
-      --bg1:#0a1330;
-      --card:rgba(255,255,255,.04);
-      --card2:rgba(255,255,255,.06);
-      --line:rgba(255,255,255,.10);
-      --text:rgba(255,255,255,.92);
-      --muted:rgba(255,255,255,.60);
-      --accent:#22c55e;
-      --accent2:#06b6d4;
-      --danger:#ef4444;
+      --bg:#050a18;
+      --card:#0b132a;
+      --card2:#0a1023;
+      --line:rgba(255,255,255,.08);
+      --txt:#dbeafe;
+      --muted:#93a4c7;
+      --ok:#34d399;
       --warn:#f59e0b;
-      --good:#22c55e;
-      --shadow:0 10px 40px rgba(0,0,0,.35);
-      --radius:18px;
+      --bad:#fb7185;
+      --chip:#111b35;
+      --chipLine:rgba(255,255,255,.10);
     }
     *{box-sizing:border-box}
+    html,body{height:100%}
     body{
       margin:0;
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
-      color:var(--text);
-      background:radial-gradient(1400px 600px at 30% -10%, rgba(34,197,94,.18), transparent 70%),
-                 radial-gradient(1200px 600px at 80% 0%, rgba(6,182,212,.12), transparent 65%),
-                 linear-gradient(180deg,var(--bg1),var(--bg0));
-      min-height:100vh;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 30% 0%, #0c1634 0%, var(--bg) 55%, #050816 100%);
+      color:var(--txt);
     }
     a{color:inherit}
-    .wrap{max-width:1300px;margin:0 auto;padding:22px}
-    .topbar{
-      display:flex;align-items:center;justify-content:space-between;gap:16px;
-      padding:14px 16px;border:1px solid var(--line);border-radius:22px;
-      background:rgba(255,255,255,.03);box-shadow:var(--shadow);
+    .wrap{max-width:1200px;margin:24px auto;padding:0 16px}
+    .top{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px
     }
-    .brand{display:flex;align-items:center;gap:10px}
-    .logo{
-      width:26px;height:26px;border-radius:50%;
-      background:radial-gradient(circle at 30% 30%, #fff, #a7f3d0 40%, #22c55e);
-      box-shadow:0 8px 24px rgba(34,197,94,.25);
+    .brand{
+      display:flex;align-items:center;gap:10px
     }
-    .brand h1{
-      margin:0;font-size:15px;font-weight:700;letter-spacing:.2px;
-      color:#a7f3d0;
-    }
-    .brand small{display:block;color:var(--muted);margin-top:2px}
-    .nav{
-      display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end
-    }
-    .pill{
-      display:flex;align-items:center;gap:10px;
-      padding:10px 12px;border-radius:999px;
+    .ball{
+      width:28px;height:28px;border-radius:50%;
+      display:grid;place-items:center;
+      background: linear-gradient(180deg,#111a38,#070d1f);
       border:1px solid var(--line);
-      background:rgba(255,255,255,.03);
-      color:var(--text);text-decoration:none;font-size:13px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      font-size:16px
     }
-    .dot{width:10px;height:10px;border-radius:999px;background:var(--accent);box-shadow:0 0 0 4px rgba(34,197,94,.15)}
-    .grid{display:grid;grid-template-columns:1.1fr 2fr;gap:18px;margin-top:18px}
-    .card{
+    .title{
+      font-weight:700;
+      font-size:16px;
+      letter-spacing:.2px
+    }
+    .subtitle{
+      font-size:12px;color:var(--muted);margin-top:2px
+    }
+    .tabs{display:flex;gap:10px;align-items:center}
+    .tab{
+      display:flex;gap:8px;align-items:center;
+      padding:8px 12px;
+      border-radius:999px;
+      background: rgba(255,255,255,.04);
       border:1px solid var(--line);
-      background:var(--card);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
+      color:var(--txt);
+      text-decoration:none;
+      font-size:13px
+    }
+    .dot{
+      width:10px;height:10px;border-radius:50%;
+      background: var(--ok);
+      box-shadow: 0 0 0 4px rgba(52,211,153,.12);
+    }
+    .panel{
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid var(--line);
+      border-radius:18px;
       padding:16px;
+      box-shadow: 0 18px 60px rgba(0,0,0,.35);
+      margin-bottom:14px
     }
-    .headRow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-    .title{font-size:14px;font-weight:700;margin:0}
-    .sub{margin:6px 0 0;color:var(--muted);font-size:13px}
-    .actions{display:flex;align-items:center;gap:10px}
+    .panelHead{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px
+    }
+    .panelTitle{font-weight:700;font-size:14px}
+    .panelSub{font-size:12px;color:var(--muted)}
+    .rightCtl{display:flex;align-items:center;gap:10px}
     .btn{
-      padding:10px 14px;border-radius:12px;border:1px solid rgba(34,197,94,.35);
-      background:linear-gradient(180deg, rgba(34,197,94,.25), rgba(34,197,94,.12));
-      color:#d1fae5;font-weight:700;cursor:pointer;
+      cursor:pointer;
+      border:1px solid rgba(52,211,153,.25);
+      background: linear-gradient(180deg, rgba(52,211,153,.25), rgba(52,211,153,.15));
+      color:#d1fae5;
+      padding:9px 14px;
+      border-radius:12px;
+      font-weight:700;
       display:flex;align-items:center;gap:8px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
     }
-    .btn.loading{opacity:.75;cursor:wait}
     .btn:disabled{opacity:.55;cursor:not-allowed}
-    .chk{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;user-select:none}
-    .chk input{transform:scale(1.05)}
-    .errorBox{
-      margin-top:10px;padding:10px 12px;border-radius:14px;
-      border:1px solid rgba(239,68,68,.35);
-      background:rgba(239,68,68,.10);
-      display:none;
+    .chk{
+      display:flex;align-items:center;gap:8px;
+      font-size:12px;color:var(--muted);
+      user-select:none
     }
-    .errorBox b{color:#fecaca}
-    .filters{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
-    label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+    .grid{
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      gap:14px;
+    }
+    @media (max-width: 980px){
+      .grid{grid-template-columns:1fr}
+    }
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:14px;
+    }
+    .card h3{margin:0 0 10px 0;font-size:13px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
     select,input{
       width:100%;
-      padding:10px 12px;border-radius:12px;
-      border:1px solid var(--line);
-      background:rgba(0,0,0,.20);
-      color:var(--text);
+      padding:10px 10px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.09);
+      background: rgba(9,14,32,.55);
+      color:var(--txt);
       outline:none;
     }
-    .stats{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-top:14px}
-    .stat{
-      border:1px solid var(--line);
-      border-radius:16px;padding:12px;background:rgba(255,255,255,.03);
+    .miniGrid{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap:10px;
     }
-    .stat .k{font-size:12px;color:var(--muted)}
-    .stat .v{font-size:26px;font-weight:800;margin-top:6px}
-    .muted{color:var(--muted)}
-    .riskGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:10px}
-    .riskBox{
-      border:1px solid var(--line);
-      border-radius:16px;padding:12px;background:rgba(255,255,255,.03);
+    @media (max-width: 980px){
+      .miniGrid{grid-template-columns: repeat(3, 1fr)}
     }
-    .riskBox .k{font-size:12px;color:var(--muted)}
-    .riskBox .v{font-size:20px;font-weight:800;margin-top:6px}
-    .tableCard{margin-top:18px}
-    table{width:100%;border-collapse:separate;border-spacing:0 10px}
+    .mini{
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:12px;
+    }
+    .mini .k{font-size:12px;color:var(--muted)}
+    .mini .v{font-size:26px;font-weight:800;margin-top:4px}
+    .mini .v.ok{color:var(--ok)}
+    .mini .v.warn{color:var(--warn)}
+    .mini .v.bad{color:var(--bad)}
+
+    .tableWrap{
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      border:1px solid var(--line);
+      border-radius:18px;
+      overflow:hidden;
+    }
+    table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      font-size:12px;
+    }
     thead th{
-      font-size:12px;color:var(--muted);text-align:left;
-      padding:0 10px 8px;
+      text-align:left;
+      padding:10px 12px;
+      color:#b9c6e6;
+      background: rgba(255,255,255,.03);
+      border-bottom:1px solid var(--line);
+      position:sticky;top:0;z-index:1;
+      white-space:nowrap;
     }
     tbody td{
-      padding:12px 10px;
-      background:rgba(255,255,255,.03);
-      border-top:1px solid rgba(255,255,255,.06);
+      padding:12px 12px;
       border-bottom:1px solid rgba(255,255,255,.06);
+      vertical-align:top;
     }
-    tbody tr td:first-child{border-left:1px solid rgba(255,255,255,.06);border-radius:14px 0 0 14px}
-    tbody tr td:last-child{border-right:1px solid rgba(255,255,255,.06);border-radius:0 14px 14px 0}
-    code{
-      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-      color:#a7f3d0;
-      background:rgba(34,197,94,.10);
-      padding:3px 8px;border-radius:999px;border:1px solid rgba(34,197,94,.18)
+    tbody tr:hover{background: rgba(255,255,255,.02)}
+    .muted{color:var(--muted)}
+    .tag{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:4px 8px;border-radius:999px;
+      background: rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.09);
+      font-size:11px;
+      white-space:nowrap;
     }
-    .badge{padding:5px 10px;border-radius:999px;font-size:12px;font-weight:800;display:inline-block}
-    .badge.pending{background:rgba(245,158,11,.14);border:1px solid rgba(245,158,11,.35);color:#fde68a}
-    .badge.win{background:rgba(34,197,94,.14);border:1px solid rgba(34,197,94,.35);color:#bbf7d0}
-    .badge.lose{background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.35);color:#fecaca}
+    .tag.ok{border-color:rgba(52,211,153,.25);color:#d1fae5}
+    .tag.warn{border-color:rgba(245,158,11,.25);color:#fde68a}
+    .tag.bad{border-color:rgba(251,113,133,.25);color:#fecdd3}
 
-    .aiWrap{margin-top:18px}
-    .ai-item{
+    .statusLine{
+      display:flex;align-items:center;gap:10px;
+      margin-top:8px;
+      font-size:12px;
+      color:var(--muted);
+    }
+    .bannerErr{
+      display:none;
+      margin-top:10px;
+      padding:10px 12px;
+      border-radius:14px;
+      background: rgba(251,113,133,.10);
+      border:1px solid rgba(251,113,133,.20);
+      color:#fecdd3;
+      font-size:12px;
+      white-space:pre-wrap;
+    }
+    body.hasError .bannerErr{display:block}
+
+    /* Make it SUPER clear what to play */
+    .playBox{display:flex;flex-direction:column;gap:4px}
+    .playMain{font-size:13px;line-height:1.2}
+    .playMain b{color:#d1fae5}
+
+    .aiBox{
+      margin-top:14px;
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:14px;
+    }
+    .aiItem{
+      padding:10px 12px;
+      border-radius:14px;
       border:1px solid rgba(255,255,255,.08);
-      background:rgba(255,255,255,.03);
-      border-radius:16px;padding:12px;margin-top:10px
+      background: rgba(9,14,32,.45);
+      margin-top:10px;
+      font-size:12px;
+      color:#cfe2ff;
     }
-    .ai-title{font-size:12px;color:var(--muted)}
-    .ai-sub{margin-top:6px}
-    .ai-body{margin-top:8px;color:rgba(255,255,255,.82);font-size:13px;line-height:1.45}
-    @media (max-width: 1050px){
-      .grid{grid-template-columns:1fr}
-      .stats{grid-template-columns:repeat(3,1fr)}
-      .riskGrid{grid-template-columns:repeat(2,1fr)}
-    }
+    .aiItem .h{font-weight:800;margin-bottom:4px}
   </style>
 </head>
-
 <body>
   <div class="wrap">
-    <div class="topbar">
+    <div class="top">
       <div class="brand">
-        <div class="logo"></div>
+        <div class="ball">⚽</div>
         <div>
-          <h1>Win100 – Live Scanner (EV/CLV/Tier + Dedup)</h1>
-          <small>สแกนบอลสด | ดูสถิติ | ปรับสูตรด้วย AI</small>
+          <div class="title">Win100 – Live Scanner (EV/CLV/Tier + Dedup)</div>
+          <div class="subtitle">สแกนบอลสด | ดูสถิติ | ปรับสูตรด้วย AI</div>
         </div>
       </div>
-      <div class="nav">
-        <a class="pill" href="#"><span class="dot"></span>หน้า Scanner สด</a>
-        <a class="pill" href="#"><span>📊</span>Dashboard สถิติ</a>
-        <a class="pill" href="#"><span>🧠</span>AI Optimizer</a>
+      <div class="tabs">
+        <a class="tab" href="#"><span class="dot"></span> หน้า Scanner สด</a>
+        <a class="tab" href="#"><span>📊</span> Dashboard สถิติ</a>
+        <a class="tab" href="#"><span>🧠</span> AI Optimizer</a>
       </div>
     </div>
 
-    <div class="card" style="margin-top:18px">
-      <div class="headRow">
+    <div class="panel">
+      <div class="panelHead">
         <div>
-          <p class="title">สแกนบอลสดแบบประหยัดโควต้า (มี Cache/TTL + Dedup)</p>
-          <p class="sub" id="statusText">—</p>
-          <div class="errorBox" id="errorBox"><b>เกิดข้อผิดพลาด:</b> <span id="errorText"></span></div>
+          <div class="panelTitle">สแกนบอลสดแบบประหยัดโควต้า (มี Cache/TTL + Dedup)</div>
+          <div id="statusText" class="panelSub">พร้อมสแกน</div>
         </div>
-        <div class="actions">
-          <label class="chk"><input id="autoChk" type="checkbox"/> Auto 20s</label>
-          <button class="btn" id="scanBtn" type="button">🔄 สแกน</button>
+        <div class="rightCtl">
+          <label class="chk"><input id="autoScan" type="checkbox" /> Auto 20s</label>
+          <button id="btnScan" class="btn">🔄 สแกน</button>
         </div>
       </div>
+      <div class="statusLine">
+        <span id="miniStatus">—</span>
+      </div>
+      <div id="errBanner" class="bannerErr"></div>
     </div>
 
     <div class="grid">
       <div class="card">
-        <p class="title">ตัวกรอง</p>
-        <div class="filters">
-          <div>
+        <h3>ตัวกรอง</h3>
+        <div class="row">
+          <div class="field">
             <label>สูตร</label>
-            <select id="filterStrategy">
-              <option value="">ทั้งหมด</option>
-              <option value="value_1x2">value_1x2</option>
-              <option value="late_pressure_goal">late_pressure_goal</option>
-              <option value="equalizer_push">equalizer_push</option>
-              <option value="redcard_filter">redcard_filter</option>
-              <option value="under_control">under_control</option>
-              <option value="upstream">upstream</option>
-            </select>
+            <select id="filterStrategy"></select>
           </div>
-          <div>
+          <div class="field">
             <label>Tier</label>
-            <select id="filterTier">
-              <option value="">ทั้งหมด</option>
-              <option value="A">A</option>
-              <option value="B">B</option>
-              <option value="C">C</option>
-            </select>
+            <select id="filterTier"></select>
           </div>
-          <div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <div class="field">
             <label>ขั้นต่ำ Edge</label>
-            <input id="minEdge" value="0.02" />
+            <input id="minEdge" type="number" step="0.01" value="0.02" />
           </div>
-          <div>
+          <div class="field">
             <label>ขั้นต่ำ Kelly</label>
-            <input id="minKelly" value="0.05" />
+            <input id="minKelly" type="number" step="0.01" value="0.05" />
           </div>
         </div>
       </div>
 
       <div class="card">
-        <div class="headRow">
-          <p class="title">Risk วันนี้</p>
-        </div>
-        <div class="riskGrid">
-          <div class="riskBox">
+        <h3>Risk วันนี้</h3>
+        <div class="row">
+          <div class="mini">
             <div class="k">วันที่</div>
-            <div class="v" id="riskDate">—</div>
+            <div id="riskDay" class="v" style="font-size:18px">—</div>
           </div>
-          <div class="riskBox">
+          <div class="mini">
             <div class="k">PnL วันนี้</div>
-            <div class="v" id="riskPnl">—</div>
+            <div id="riskPnl" class="v" style="font-size:18px">—</div>
           </div>
-          <div class="riskBox">
-            <div class="k">แพ็ค</div>
-            <div class="v" id="riskStake">0</div>
+          <div class="mini">
+            <div class="k">เบ็ตต์</div>
+            <div id="riskBets" class="v" style="font-size:18px">0</div>
           </div>
-          <div class="riskBox">
+          <div class="mini">
             <div class="k">สถานะ</div>
-            <div class="v" id="riskState">ACTIVE</div>
+            <div id="riskStatus" class="v" style="font-size:18px">—</div>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="stats">
-      <div class="stat"><div class="k">Fixture สด</div><div class="v" id="cLive">0</div></div>
-      <div class="stat"><div class="k">สัญญาณทั้งหมด</div><div class="v" id="cSignals">0</div></div>
-      <div class="stat"><div class="k">ผ่าน Gate</div><div class="v" id="cGate">0</div></div>
-      <div class="stat"><div class="k">Tier A</div><div class="v" id="cTierA">0</div></div>
-      <div class="stat"><div class="k">Tier B</div><div class="v" id="cTierB">0</div></div>
-      <div class="stat"><div class="k">Tier C</div><div class="v" id="cTierC">0</div></div>
-    </div>
-
-    <div class="card tableCard">
-      <div class="headRow">
-        <p class="title">รายการสัญญาณล่าสุด (Dedup แล้ว)</p>
-        <p class="sub">โชว์เฉพาะ “ล่าสุด/คู่/สูตร/ฝั่ง”</p>
+    <div class="miniGrid">
+      <div class="mini">
+        <div class="k">Fixture สด</div>
+        <div id="mFixtures" class="v">0</div>
       </div>
-      <div style="overflow:auto;margin-top:8px">
-        <table>
-          <thead>
-            <tr>
-              <th>เวลา</th>
-              <th>ลีก</th>
-              <th>คู่</th>
-              <th>สูตร</th>
-              <th>เล่นอะไร</th>
-              <th>ฝั่ง</th>
-              <th>Tier</th>
-              <th>Stake</th>
-              <th>Edge</th>
-              <th>Kelly</th>
-              <th>ราคาเข้า</th>
-              <th>สกอร์/นาที</th>
-              <th>สถานะ</th>
-            </tr>
-          </thead>
-          <tbody id="tblBody">
-            <tr><td colspan="13" class="muted">—</td></tr>
-          </tbody>
-        </table>
+      <div class="mini">
+        <div class="k">สัญญาณทั้งหมด</div>
+        <div id="mSignals" class="v">0</div>
+      </div>
+      <div class="mini">
+        <div class="k">ผ่าน Gate</div>
+        <div id="mGate" class="v ok">0</div>
+      </div>
+      <div class="mini">
+        <div class="k">Tier A</div>
+        <div id="mA" class="v">0</div>
+      </div>
+      <div class="mini">
+        <div class="k">Tier B</div>
+        <div id="mB" class="v">0</div>
+      </div>
+      <div class="mini">
+        <div class="k">Tier C</div>
+        <div id="mC" class="v">0</div>
       </div>
     </div>
 
-    <div class="card aiWrap">
-      <div class="headRow">
-        <p class="title">สรุปจาก AI (ล่าสุดไม่เกิน 6 รายการ)</p>
+    <div style="height:14px"></div>
+
+    <div class="tableWrap">
+      <div style="padding:14px 14px 10px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div style="font-weight:800">รายการสัญญาณล่าสุด (Dedup แล้ว)</div>
+        <div class="muted" style="font-size:12px">โชว์เฉพาะ “ล่าสุด/คู่/สูตร/ฝั่ง”</div>
       </div>
-      <div id="aiList" style="margin-top:8px"><div class="muted">—</div></div>
+      <table>
+        <thead>
+          <tr>
+            <th>เวลา</th>
+            <th>ลีก</th>
+            <th>คู่</th>
+            <th>สูตร</th>
+            <th>เล่นอะไร</th>
+            <th>Tier</th>
+            <th>Stake</th>
+            <th>Edge</th>
+            <th>Kelly</th>
+            <th>ราคาเข้า</th>
+            <th>สกอร์/นาที</th>
+            <th>สถานะ</th>
+          </tr>
+        </thead>
+        <tbody id="tblBody"></tbody>
+      </table>
+    </div>
+
+    <div class="aiBox">
+      <div style="font-weight:800">สรุปจาก AI (ล่าสุดไม่เกิน 6 รายการ)</div>
+      <div id="aiList" class="muted" style="margin-top:10px">—</div>
     </div>
   </div>
 
   <script>
-/** Win100 Live Scanner UI (clean) **/
-const API_BASE = ""; // same-origin. If you want another host, set: localStorage.setItem("WIN100_API_BASE","http://127.0.0.1:3000")
-const apiBase = (localStorage.getItem("WIN100_API_BASE") || API_BASE).replace(/\/$/, "");
+    // keep-alive / health
+    // (render/localhost pages)
+  </script>
 
-const els = {
-  scanBtn: document.getElementById("scanBtn"),
-  autoChk: document.getElementById("autoChk"),
-  errorBox: document.getElementById("errorBox"),
-  errorText: document.getElementById("errorText"),
-  statusText: document.getElementById("statusText"),
+  <script>
+    const STRATEGY_LABEL = {
+      value_1x2: "Value 1X2",
+      late_pressure_goal: "Late Pressure Goal",
+      equalizer_push: "Equalizer Push",
+      redcard_filter: "Redcard Filter",
+      under_control: "Under Control",
+      upstream: "Upstream"
+    };
 
-  filterStrategy: document.getElementById("filterStrategy"),
-  filterTier: document.getElementById("filterTier"),
-  minEdge: document.getElementById("minEdge"),
-  minKelly: document.getElementById("minKelly"),
+    const TIER_LABEL = ["A","B","C"];
 
-  cLive: document.getElementById("cLive"),
-  cSignals: document.getElementById("cSignals"),
-  cGate: document.getElementById("cGate"),
-  cTierA: document.getElementById("cTierA"),
-  cTierB: document.getElementById("cTierB"),
-  cTierC: document.getElementById("cTierC"),
+    const el = (id)=>document.getElementById(id);
 
-  tblBody: document.getElementById("tblBody"),
-  aiList: document.getElementById("aiList"),
+    const btnScan = el("btnScan");
+    const autoScan = el("autoScan");
+    const statusText = el("statusText");
+    const miniStatus = el("miniStatus");
+    const errBanner = el("errBanner");
 
-  riskDate: document.getElementById("riskDate"),
-  riskPnl: document.getElementById("riskPnl"),
-  riskStake: document.getElementById("riskStake"),
-  riskState: document.getElementById("riskState"),
-};
+    const filterStrategy = el("filterStrategy");
+    const filterTier = el("filterTier");
+    const minEdge = el("minEdge");
+    const minKelly = el("minKelly");
 
-let lastScan = null;
-let autoTimer = null;
+    const tblBody = el("tblBody");
+    const aiList = el("aiList");
 
-function fmt(n, d=2){
-  if(n === null || n === undefined || n === "" || Number.isNaN(Number(n))) return "—";
-  return Number(n).toFixed(d);
-}
-function safeStr(v){ return (v===null || v===undefined) ? "" : String(v); }
-function toNum(v, fallback=null){
-  const x = Number(v);
-  return Number.isFinite(x) ? x : fallback;
-}
+    const mFixtures = el("mFixtures");
+    const mSignals = el("mSignals");
+    const mGate = el("mGate");
+    const mA = el("mA");
+    const mB = el("mB");
+    const mC = el("mC");
 
-function showError(msg){
-  els.errorBox.style.display = "block";
-  els.errorText.textContent = msg;
-}
-function clearError(){
-  els.errorBox.style.display = "none";
-  els.errorText.textContent = "";
-}
+    const riskDay = el("riskDay");
+    const riskPnl = el("riskPnl");
+    const riskBets = el("riskBets");
+    const riskStatus = el("riskStatus");
 
-async function fetchJSON(url, options={}, timeoutMs=30000){
-  const ctrl = new AbortController();
-  const t = setTimeout(()=>ctrl.abort(), timeoutMs);
-  try{
-    const res = await fetch(url, { ...options, signal: ctrl.signal, cache: "no-store" });
-    const ct = (res.headers.get("content-type") || "").toLowerCase();
-    const text = await res.text();
+    let timer = null;
+    let lastPicks = [];
 
-    if(!res.ok){
-      let msg = `HTTP ${res.status} ${res.statusText}`.trim();
+    function setStatus(msg){
+      statusText.textContent = msg;
+      miniStatus.textContent = msg;
+      // show/hide banner based on msg prefix
+      if(String(msg||"").startsWith("เกิดข้อผิดพลาด")){
+        errBanner.textContent = msg;
+        document.body.classList.add("hasError");
+      }else{
+        errBanner.textContent = "";
+        document.body.classList.remove("hasError");
+      }
+    }
+
+    function labelStrategy(k){
+      return STRATEGY_LABEL[k] || k || "-";
+    }
+
+    function labelTier(t){
+      if(!t) return "-";
+      const s = String(t).toUpperCase();
+      if(TIER_LABEL.includes(s)) return s;
+      return s;
+    }
+
+    function tagTier(t){
+      const s = labelTier(t);
+      if(s==="A") return `<span class="tag ok">Tier ${s}</span>`;
+      if(s==="B") return `<span class="tag warn">Tier ${s}</span>`;
+      if(s==="C") return `<span class="tag bad">Tier ${s}</span>`;
+      return `<span class="tag">Tier ${s}</span>`;
+    }
+
+    // --- Play / Bet instruction helpers (UI clarity) ---
+    function betSideThai(side){
+      const s = String(side||"").toLowerCase();
+      const map = {
+        home: "เจ้าบ้าน", away: "ทีมเยือน", draw: "เสมอ",
+        over: "สูง", under: "ต่ำ",
+        "1": "เจ้าบ้าน", "2": "ทีมเยือน", "x": "เสมอ"
+      };
+      return map[s] || (side ? String(side) : "");
+    }
+
+    // Convert strings like "over_0_5" -> {ou:"over", line:"0.5"}
+    function parseOuSelection(sel){
+      if(!sel) return null;
+      const m = String(sel).match(/^(over|under)_(\d+(?:_\d+)*)$/i);
+      if(!m) return null;
+      const ou = m[1].toLowerCase();
+      const line = m[2].split("_").join(".");
+      return { ou, line };
+    }
+
+    function formatPlayPlain(p){
+      if(!p) return "-";
+      // Prefer explicit note (already human-friendly)
+      if(p.note) return String(p.note);
+
+      // If server provides betType/market/selection/line/price fields
+      const betType = p.betType || p.bet_type;
+      const market = p.market || p.marketType;
+      const selection = p.selection || p.pick || p.betSelection;
+      const line = (p.line ?? p.handicap ?? p.total);
+
+      // O/U selection pattern
+      const ou = parseOuSelection(selection);
+      if(ou){
+        const mk = market ? String(market).toUpperCase() : "TOTAL";
+        const side = ou.ou === "over" ? "สูง" : "ต่ำ";
+        const odds = (p.price!=null ? p.price : p.odds!=null ? p.odds : null);
+        return `เล่น: ${side} ${ou.line} (${mk})${odds?` @${odds}`:""}`;
+      }
+
+      // 1X2 common selections
+      const selNorm = selection ? String(selection).toLowerCase() : "";
+      if(["home","away","draw","1","2","x"].includes(selNorm)){
+        const side = betSideThai(selNorm);
+        const odds = (p.price!=null ? p.price : p.odds!=null ? p.odds : null);
+        return `เล่น: ${side} (1X2)${odds?` @${odds}`:""}`;
+      }
+
+      // Generic: use betSide + possible line
+      const side2 = betSideThai(p.betSide);
+      if(side2){
+        const odds = (p.price!=null ? p.price : p.odds!=null ? p.odds : null);
+        return `เล่น: ${side2}${line!=null?` ${line}`:""}${odds?` @${odds}`:""}`;
+      }
+
+      // Last resort: show whatever is available
+      const parts = [];
+      if(betType) parts.push(String(betType));
+      if(market) parts.push(String(market));
+      if(selection) parts.push(String(selection));
+      if(line!=null) parts.push(String(line));
+      return parts.length ? `เล่น: ${parts.join(" • ")}` : "-";
+    }
+
+    function formatPlayHTML(p){
+      const t = formatPlayPlain(p);
+      const safe = String(t).replace(/</g,"&lt;").replace(/>/g,"&gt;");
+      return `<div class="playBox"><div class="playMain">${safe.replace(/^เล่น:\s*/,"<b>เล่น:</b> ")}</div></div>`;
+    }
+
+    function timeHM(ts){
+      if(!ts) return "-";
+      const d = new Date(ts);
+      if(isNaN(d.getTime())) return String(ts);
+      const hh = String(d.getHours()).padStart(2,"0");
+      const mm = String(d.getMinutes()).padStart(2,"0");
+      return `${hh}:${mm}`;
+    }
+
+    function setFilters(){
+      // Strategy
+      const stratKeys = Object.keys(STRATEGY_LABEL);
+      filterStrategy.innerHTML =
+        `<option value="">ทั้งหมด</option>` +
+        stratKeys.map(k=>`<option value="${k}">${k}</option>`).join("");
+
+      // Tier
+      filterTier.innerHTML =
+        `<option value="">ทั้งหมด</option>` +
+        ["A","B","C"].map(t=>`<option value="${t}">Tier ${t}</option>`).join("");
+    }
+
+    function updateRisk(risk){
+      if(!risk){
+        riskDay.textContent = "—";
+        riskPnl.textContent = "—";
+        riskBets.textContent = "0";
+        riskStatus.textContent = "—";
+        return;
+      }
+      riskDay.textContent = risk.day || "—";
+      riskPnl.textContent = (risk.pnl!=null ? String(risk.pnl) : "—");
+      riskBets.textContent = (risk.bets!=null ? String(risk.bets) : "0");
+      riskStatus.textContent = risk.status || "ACTIVE";
+    }
+
+    function passGate(p){
+      const me = parseFloat(minEdge.value || "0");
+      const mk = parseFloat(minKelly.value || "0");
+      const edge = parseFloat(p.edge || "0");
+      const kelly = parseFloat(p.kelly || "0");
+      return edge >= me && kelly >= mk;
+    }
+
+    function render(picks, meta){
+      const sFilter = filterStrategy.value || "";
+      const tFilter = (filterTier.value || "").toUpperCase();
+
+      const filtered = (picks||[]).filter(p=>{
+        if(sFilter && p.strategy !== sFilter) return false;
+        if(tFilter && String(p.tier||"").toUpperCase() !== tFilter) return false;
+        return true;
+      });
+
+      const totalFixtures = meta?.totalFixtures ?? 0;
+      const totalPicks = meta?.totalPicks ?? filtered.length;
+
+      // minis
+      mFixtures.textContent = String(totalFixtures);
+      mSignals.textContent = String(totalPicks);
+
+      let gate=0, a=0,b=0,c=0;
+      for(const p of filtered){
+        if(passGate(p)) gate++;
+        const t = String(p.tier||"").toUpperCase();
+        if(t==="A") a++; else if(t==="B") b++; else if(t==="C") c++;
+      }
+      mGate.textContent = String(gate);
+      mA.textContent = String(a);
+      mB.textContent = String(b);
+      mC.textContent = String(c);
+
+      // table
+      tblBody.innerHTML = "";
+      if(!filtered.length){
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td colspan="12" class="muted">ยังไม่มีรายการ (ลองกด “สแกน” หรือรอสัญญาณเข้าเงื่อนไข)</td>`;
+        tblBody.appendChild(tr);
+      }else{
+        for(const p of filtered.slice(0,50)){
+          const tr = document.createElement("tr");
+          const match = `${p.home||"-"} vs ${p.away||"-"}`;
+          const scoreMin = (p.scoreAtScan!=null || p.minuteAtScan!=null)
+            ? `${p.scoreAtScan!=null?p.scoreAtScan:"-"} / ${p.minuteAtScan!=null?p.minuteAtScan:"-"}'`
+            : "-";
+
+          const stake = (p.stake!=null ? p.stake : p.stakeUnit!=null ? p.stakeUnit : null);
+          const stakeTxt = (stake==null ? "—" : String(stake));
+
+          const edgeTxt = (p.edge!=null ? Number(p.edge).toFixed(4) : "—");
+          const kellyTxt = (p.kelly!=null ? Number(p.kelly).toFixed(4) : "—");
+          const priceTxt = (p.priceTaken!=null ? p.priceTaken : p.price!=null ? p.price : "—");
+
+          const st = String(p.status||"PENDING").toUpperCase();
+          const stTag = st==="ACTIVE"
+            ? `<span class="tag ok">ACTIVE</span>`
+            : st==="WON"
+              ? `<span class="tag ok">WON</span>`
+              : st==="LOST"
+                ? `<span class="tag bad">LOST</span>`
+                : `<span class="tag warn">${st}</span>`;
+
+          tr.innerHTML = `
+            <td class="muted">${timeHM(p.ts)}</td>
+            <td>${p.league||"-"}</td>
+            <td>${match}</td>
+            <td><span class="tag">${p.strategy||"-"}</span><div class="muted" style="margin-top:4px">${labelStrategy(p.strategy)}</div></td>
+            <td>${formatPlayHTML(p)}</td>
+            <td>${tagTier(p.tier)}</td>
+            <td>${stakeTxt}</td>
+            <td>${edgeTxt}</td>
+            <td>${kellyTxt}</td>
+            <td>${priceTxt}</td>
+            <td class="muted">${scoreMin}</td>
+            <td>${stTag}</td>
+          `;
+          tblBody.appendChild(tr);
+        }
+      }
+
+      // AI-like quick summary (no model call, just readable)
+      if(!filtered.length){
+        aiList.textContent = "—";
+      }else{
+        aiList.innerHTML = "";
+        const top = filtered.slice(0,6);
+        for(const p of top){
+          const div = document.createElement("div");
+          div.className = "aiItem";
+          const match = `${p.home||"-"} vs ${p.away||"-"}`;
+          div.innerHTML = `
+            <div class="h">${timeHM(p.ts)} • ${p.league||"-"} • ${match}</div>
+            <div>${formatPlayHTML(p)}</div>
+            <div class="muted" style="margin-top:6px">สูตร: ${p.strategy||"-"} (${labelStrategy(p.strategy)}) • ${labelTier(p.tier)} • Edge ${p.edge!=null?Number(p.edge).toFixed(4):"—"} • Kelly ${p.kelly!=null?Number(p.kelly).toFixed(4):"—"}</div>
+          `;
+          aiList.appendChild(div);
+        }
+      }
+    }
+
+    async function scanNow(){
       try{
-        const j = JSON.parse(text);
-        msg = j.error || j.message || msg;
-      }catch{}
-      throw new Error(msg);
+        setStatus("กำลังสแกน…");
+        btnScan.disabled = true;
+
+        const r = await fetch("/api/scan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{}"
+        });
+
+        const ct = (r.headers.get("content-type")||"").toLowerCase();
+        let data;
+        if(ct.includes("application/json")){
+          data = await r.json();
+        }else{
+          const txt = await r.text();
+          const head = txt.slice(0, 200).replace(/\s+/g," ").trim();
+          throw new Error(`เซิร์ฟเวอร์ตอบกลับไม่ใช่ JSON (content-type: ${ct||"unknown"}) • ${head}`);
+        }
+
+        const ok = (data.status === "success") || (data.ok === true);
+        if(!ok){
+          throw new Error(data.message || data.error || "สแกนไม่สำเร็จ");
+        }
+
+        lastPicks = data.picks || data.signals || [];
+        updateRisk(data.risk || null);
+
+        const totalFixtures = data.totalFixtures ?? data.liveCount ?? 0;
+        const totalPicks = data.totalPicks ?? data.signalsCount ?? (lastPicks.length||0);
+
+        render(lastPicks, { totalFixtures, totalPicks });
+
+        if(totalPicks > 0){
+          setStatus(`สแกนสำเร็จ: Fixtures ${totalFixtures} • Picks ${totalPicks}`);
+        }else{
+          setStatus(`สแกนสำเร็จ แต่ยังไม่มีสัญญาณเข้าเงื่อนไข • Fixtures ${totalFixtures} • Picks 0`);
+        }
+      }catch(e){
+        console.error(e);
+        setStatus("เกิดข้อผิดพลาด: " + (e?.message || e));
+        document.body.classList.add("hasError");
+      }finally{
+        btnScan.disabled = false;
+      }
     }
 
-    if(ct.includes("text/html") || text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html")){
-      throw new Error("API ตอบกลับเป็น HTML (น่าจะเรียกผิด endpoint หรือโดน fallback). ตรวจว่า URL เป็น /api/scan และ server มี route /api/* จริง");
+    function startAuto(){
+      stopAuto();
+      timer = setInterval(()=>scanNow(), 20000);
+    }
+    function stopAuto(){
+      if(timer){ clearInterval(timer); timer=null; }
     }
 
-    try{
-      return JSON.parse(text);
-    }catch(e){
-      const preview = text.trim().slice(0, 120);
-      throw new Error(`API ตอบกลับไม่ใช่ JSON: ${preview}${preview.length>=120 ? "..." : ""}`);
-    }
-  }finally{
-    clearTimeout(t);
-  }
-}
+    btnScan.addEventListener("click", ()=>scanNow());
+    autoScan.addEventListener("change", ()=>{
+      if(autoScan.checked) startAuto();
+      else stopAuto();
+    });
 
-function normalizeScan(data){
-  if(data && typeof data === "object" && ("ok" in data)){
-    return {
-      ok: !!data.ok,
-      ts: data.ts,
-      liveCount: toNum(data.liveCount, 0),
-      signalsCount: toNum(data.signalsCount, 0),
-      signals: Array.isArray(data.signals) ? data.signals : [],
-      risk: data.risk || null,
-      meta: data.meta || null,
-      errors: Array.isArray(data.errors) ? data.errors : [],
-    };
-  }
-  if(data && typeof data === "object" && data.status){
-    const ok = String(data.status).toLowerCase() === "success";
-    return {
-      ok,
-      ts: data.ts,
-      liveCount: toNum(data.totalFixtures, 0),
-      signalsCount: toNum(data.totalPicks, 0),
-      signals: Array.isArray(data.picks) ? data.picks : [],
-      risk: data.risk || null,
-      meta: data.meta || null,
-      errors: Array.isArray(data.errors) ? data.errors : [],
-    };
-  }
-  return { ok:false, ts:null, liveCount:0, signalsCount:0, signals:[], risk:null, meta:null, errors:[], _raw:data };
-}
+    filterStrategy.addEventListener("change", ()=>render(lastPicks, {totalFixtures: Number(mFixtures.textContent||0), totalPicks: Number(mSignals.textContent||0)}));
+    filterTier.addEventListener("change", ()=>render(lastPicks, {totalFixtures: Number(mFixtures.textContent||0), totalPicks: Number(mSignals.textContent||0)}));
+    minEdge.addEventListener("input", ()=>render(lastPicks, {totalFixtures: Number(mFixtures.textContent||0), totalPicks: Number(mSignals.textContent||0)}));
+    minKelly.addEventListener("input", ()=>render(lastPicks, {totalFixtures: Number(mFixtures.textContent||0), totalPicks: Number(mSignals.textContent||0)}));
 
-function tierOf(p){
-  return (p.tier || p.tierLabel || "").toString().toUpperCase() || "—";
-}
-
-function betText(p){
-  const bt = (p.betType || p.betype || p.type || p.market || "").toString().toLowerCase();
-  const sel = (p.selection || p.pick || p.side || p.betSide || "").toString();
-  const line = p.line ?? p.handicap ?? p.value ?? null;
-
-  if(bt === "attack"){
-    const side = (p.betSide || p.side || sel || "").toString().toLowerCase();
-    if(side === "home") return "เจ้าบ้าน (1X2 / ชนะ)";
-    if(side === "away") return "ทีมเยือน (1X2 / ชนะ)";
-    if(side === "draw") return "เสมอ";
-    return "1X2 (ตามสัญญาณ)";
-  }
-
-  if(bt === "over" || bt === "under"){
-    const m = sel.match(/(over|under)[_\s-]?(\d+)[_\s-]?(\d+)?/i);
-    if(m){
-      const a = m[2];
-      const b = m[3];
-      const num = b ? `${a}.${b}` : `${a}`;
-      return `${bt === "over" ? "สูง" : "ต่ำ"} ${num}`;
-    }
-    if(line !== null) return `${bt === "over" ? "สูง" : "ต่ำ"} ${line}`;
-    return bt === "over" ? "สูง (O/U)" : "ต่ำ (O/U)";
-  }
-
-  if(bt.includes("ah") || bt.includes("handicap")){
-    const side = (p.betSide || sel || "").toString().toLowerCase();
-    const l = line !== null ? line : "";
-    const sideTH = side === "home" ? "เจ้าบ้าน" : side === "away" ? "ทีมเยือน" : "แฮนดิแคป";
-    return `${sideTH} ${l}`.trim();
-  }
-
-  if(bt.includes("dnb") || bt.includes("draw no bet")){
-    const side = (p.betSide || sel || "").toString().toLowerCase();
-    const sideTH = side === "home" ? "เจ้าบ้าน" : side === "away" ? "ทีมเยือน" : "DNB";
-    return `${sideTH} (DNB)`;
-  }
-
-  const raw = [p.betType, p.selection].filter(Boolean).join(" · ");
-  return raw || "—";
-}
-
-function statusBadge(p){
-  const s = (p.result || p.status || "PENDING").toString().toUpperCase();
-  const cls = s === "WIN" ? "badge win" : s === "LOSE" ? "badge lose" : "badge pending";
-  return `<span class="${cls}">${s}</span>`;
-}
-
-function passesFilters(p){
-  const strat = els.filterStrategy.value;
-  const tier = els.filterTier.value;
-  const minEdge = toNum(els.minEdge.value, 0);
-  const minKelly = toNum(els.minKelly.value, 0);
-
-  if(strat && (p.strategy || "").toString() !== strat) return false;
-  if(tier && tierOf(p) !== tier) return false;
-
-  const edge = toNum(p.edge ?? p.ev, 0);
-  const kelly = toNum(p.kelly, 0);
-  if(edge < minEdge) return false;
-  if(kelly < minKelly) return false;
-
-  return true;
-}
-
-function updateCounters(scan){
-  const signals = (scan.signals || []).filter(passesFilters);
-  els.cLive.textContent = toNum(scan.liveCount, 0);
-  els.cSignals.textContent = signals.length;
-
-  let gate = 0, a=0, b=0, c=0;
-  for(const p of signals){
-    const t = tierOf(p);
-    if(t === "A") a++;
-    else if(t === "B") b++;
-    else if(t === "C") c++;
-    if(p.passedGate || p.gatePassed) gate++;
-  }
-  els.cGate.textContent = gate;
-  els.cTierA.textContent = a;
-  els.cTierB.textContent = b;
-  els.cTierC.textContent = c;
-
-  const r = scan.risk || {};
-  els.riskDate.textContent = r.date || "—";
-  els.riskPnl.textContent = (r.pnl !== undefined && r.pnl !== null) ? String(r.pnl) : "—";
-  els.riskStake.textContent = (r.totalStake !== undefined && r.totalStake !== null) ? String(r.totalStake) : "0";
-  els.riskState.textContent = (r.state || "ACTIVE").toString().toUpperCase();
-}
-
-function renderTable(scan){
-  const signals = (scan.signals || []).filter(passesFilters);
-  if(!signals.length){
-    els.tblBody.innerHTML = `<tr><td colspan="13" class="muted">ยังไม่มี “สัญญาณ” ที่เข้าเงื่อนไขตอนนี้ (ลองลดขั้นต่ำ Edge/Kelly หรือรอสักครู่)</td></tr>`;
-    return;
-  }
-
-  const rows = signals.map(p=>{
-    const time = p.time || (p.ts ? new Date(p.ts).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"}) : "—");
-    const league = safeStr(p.league || p.competition || "");
-    const match = safeStr(p.match || (p.home && p.away ? `${p.home} vs ${p.away}` : ""));
-    const strat = safeStr(p.strategy || "—");
-    const play = betText(p);
-    const side = safeStr(p.betSide || p.side || "—").toUpperCase();
-    const tier = tierOf(p);
-    const stake = p.stake ?? p.stakeUnit ?? "—";
-    const edge = fmt(p.edge ?? p.ev, 4);
-    const kelly = fmt(p.kelly, 4);
-    const price = (p.price ?? p.odds ?? null);
-    const priceText = (price === null || price === undefined) ? "—" : String(price);
-    const score = p.score || p.scoreAtScan || (p.goalsHome !== undefined ? `${p.goalsHome}-${p.goalsAway}` : "—");
-    const minute = p.minute ?? p.minuteAtScan ?? "—";
-    const scoreMin = (score && minute !== "—") ? `${score} / ${minute}'` : (score || "—");
-    return `<tr>
-      <td>${time}</td>
-      <td>${league}</td>
-      <td>${match}</td>
-      <td><code>${strat}</code></td>
-      <td><strong>${play}</strong></td>
-      <td>${side || "—"}</td>
-      <td>${tier}</td>
-      <td>${stake}</td>
-      <td>${edge}</td>
-      <td>${kelly}</td>
-      <td>${priceText}</td>
-      <td>${scoreMin}</td>
-      <td>${statusBadge(p)}</td>
-    </tr>`;
-  }).join("");
-
-  els.tblBody.innerHTML = rows;
-}
-
-function renderAI(scan){
-  const signals = (scan.signals || []).filter(passesFilters).slice(0, 6);
-  if(!signals.length){
-    els.aiList.innerHTML = `<div class="muted">—</div>`;
-    return;
-  }
-  const items = signals.map(p=>{
-    const time = p.time || (p.ts ? new Date(p.ts).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"}) : "");
-    const league = safeStr(p.league || "");
-    const match = safeStr(p.home && p.away ? `${p.home} vs ${p.away}` : (p.match || ""));
-    const play = betText(p);
-    const ai = safeStr(p.ai || p.note || "");
-    return `<div class="ai-item">
-      <div class="ai-title">${time} • ${league} • ${match}</div>
-      <div class="ai-sub"><strong>${play}</strong></div>
-      <div class="ai-body">${ai ? ai : `<span class="muted">—</span>`}</div>
-    </div>`;
-  }).join("");
-
-  els.aiList.innerHTML = items;
-}
-
-function updateStatusText(scan){
-  const fixtures = toNum(scan.liveCount, 0);
-  const picks = (scan.signals || []).filter(passesFilters).length;
-  const when = scan.ts ? new Date(scan.ts).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit", second:"2-digit"}) : "";
-  if(scan.ok){
-    if(picks === 0){
-      els.statusText.textContent = `สแกนแล้ว: Fixtures ${fixtures} · Picks 0 (ยังไม่มีคู่เข้าเงื่อนไข) ${when ? "• "+when : ""}`;
-    }else{
-      els.statusText.textContent = `สแกนแล้ว: Fixtures ${fixtures} · Picks ${picks} ${when ? "• "+when : ""}`;
-    }
-  }else{
-    els.statusText.textContent = `สแกนไม่สำเร็จ`;
-  }
-}
-
-async function scan(){
-  els.scanBtn.disabled = true;
-  els.scanBtn.classList.add("loading");
-  clearError();
-  els.statusText.textContent = "กำลังสแกน...";
-  try{
-    const raw = await fetchJSON(`${apiBase}/api/scan`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: "{}"
-    }, 45000);
-
-    const scan = normalizeScan(raw);
-    lastScan = scan;
-
-    if(!scan.ok){
-      const msg = (scan.errors && scan.errors.length) ? scan.errors.join(" | ") : "สแกนไม่สำเร็จ";
-      showError(msg);
-    }
-
-    updateStatusText(scan);
-    updateCounters(scan);
-    renderTable(scan);
-    renderAI(scan);
-  }catch(err){
-    showError(err?.message ? String(err.message) : "สแกนไม่สำเร็จ");
-    els.statusText.textContent = "สแกนไม่สำเร็จ";
-    // Keep UI stable: do not wipe previous successful data
-  }finally{
-    els.scanBtn.disabled = false;
-    els.scanBtn.classList.remove("loading");
-  }
-}
-
-function bind(){
-  els.scanBtn.addEventListener("click", scan);
-
-  const onFilter = ()=>{
-    if(!lastScan) return;
-    clearError();
-    updateStatusText(lastScan);
-    updateCounters(lastScan);
-    renderTable(lastScan);
-    renderAI(lastScan);
-  };
-  els.filterStrategy.addEventListener("change", onFilter);
-  els.filterTier.addEventListener("change", onFilter);
-  els.minEdge.addEventListener("change", onFilter);
-  els.minKelly.addEventListener("change", onFilter);
-
-  els.autoChk.addEventListener("change", ()=>{
-    if(els.autoChk.checked){
-      autoTimer = setInterval(()=>scan().catch(()=>{}), 20000);
-    }else{
-      if(autoTimer) clearInterval(autoTimer);
-      autoTimer = null;
-    }
-  });
-}
-
-async function init(){
-  bind();
-  try{ await scan(); }catch{}
-}
-
-init();
+    // init
+    setFilters();
+    setStatus("พร้อมสแกน");
   </script>
 </body>
 </html>
