@@ -1,67 +1,27 @@
 {
-  "smart_underdog": {
-    "label": "ทีมรองที่ฉลาด",
-    "enabled": false,
-    "params": {}
-  },
-  "attack_pressure": {
-    "label": "บุกหนัก",
-    "enabled": false,
-    "params": {
-      "minuteMin": 25,
-      "minuteMax": 70,
-      "sogDiffMin": 4
-    }
-  },
-  "live_xg": {
-    "label": "xG สด",
-    "enabled": false,
-    "params": {
-      "xgDiffMin": 0.4,
-      "minuteMin": 35,
-      "minuteMax": 80
-    }
-  },
-  "anti_price": {
-    "label": "ราคาต่ำผิดปกติ",
-    "enabled": false,
-    "params": {}
-  },
-  "ah_1_5": {
-    "label": "แฮนดิแคป 1.5",
+  "value_1x2": {
+    "label": "Value 1X2 (เทียบราคา)",
     "enabled": true,
-    "params": {}
+    "params": { "minMinute": 20, "maxMinute": 85, "minEdge": 0.06, "minEV": 0.02 }
   },
-  "over_momentum": {
-    "label": "โมเมนตัมสูง",
+  "late_pressure_goal": {
+    "label": "ท้ายเกมกดดันจัด (ลุ้นประตู)",
     "enabled": true,
-    "params": {
-      "momentumScoreMin": 0.52,
-      "minuteMin": 30,
-      "minuteMax": 75
-    }
+    "params": { "minMinute": 70, "maxMinute": 88, "minPressure": 0.6, "minSOTDiff": 2, "minCornerDiff": 2 }
   },
-  "over75": {
-    "label": "โอกาสยิงเกิน 0.75",
-    "enabled": false,
-    "params": {}
-  },
-  "pressure_flip_goal": {
-    "label": "กดดันจนเปลี่ยนเกม",
+  "equalizer_push": {
+    "label": "ทีมตาม 1 ลูกแต่บุกหนัก",
     "enabled": true,
-    "params": {
-      "pressureMin": 0.56,
-      "minuteMin": 40,
-      "minuteMax": 85
-    }
+    "params": { "minMinute": 45, "maxMinute": 82, "maxGoalDown": 1, "minPressure": 0.58, "minSOT": 3 }
   },
-  "xg_imbalance_surge": {
-    "label": "xG ความต่างพุ่งแรง",
+  "redcard_filter": {
+    "label": "กันใบแดง (ฟิลเตอร์ความเสี่ยง)",
     "enabled": true,
-    "params": {
-      "xgDiffSurgeMin": 0.38,
-      "minuteMin": 30,
-      "minuteMax": 80
-    }
+    "params": { "penalty": 1.2 }
+  },
+  "under_control": {
+    "label": "เกมอึดอัด (Under)",
+    "enabled": true,
+    "params": { "minMinute": 55, "maxMinute": 80, "maxTotalShotsSum": 16, "maxSOTSum": 6, "maxXgProxySum": 1.9 }
   }
 }
