@@ -238,12 +238,13 @@
         </div>
       </div>
       <div class="tabs">
-        <a class="tab" href="#"><span class="dot"></span> หน้า Scanner สด</a>
-        <a class="tab" href="#"><span>📊</span> Dashboard สถิติ</a>
-        <a class="tab" href="#"><span>🧠</span> AI Optimizer</a>
+        <a class="tab" href="#scanner"><span class="dot"></span> หน้า Scanner สด</a>
+        <a class="tab" href="#dashboard"><span>📊</span> Dashboard สถิติ</a>
+        <a class="tab" href="#ai"><span>🧠</span> AI Optimizer</a>
       </div>
     </div>
 
+    <div id="view-scanner">
     <div class="panel">
       <div class="panelHead">
         <div>
@@ -368,7 +369,72 @@
       <div style="font-weight:800">สรุปจาก AI (ล่าสุดไม่เกิน 6 รายการ)</div>
       <div id="aiList" class="muted" style="margin-top:10px">—</div>
     </div>
+  </div></div><!-- /#view-scanner -->
+
+<div id="view-dashboard" style="display:none">
+  <div class="panel">
+    <div class="panelHead">
+      <div>
+        <div class="panelTitle">Dashboard สถิติ (Win/Lose จาก logs)</div>
+        <div class="panelSub">ดึงจาก logs/picks.ndjson + logs/results.ndjson</div>
+      </div>
+      <div class="rightCtl">
+        <input id="dashDate" class="inp" type="date" />
+        <button id="btnLoadDash" class="btn">📊 โหลดสถิติ</button>
+        <button id="btnSync" class="btn">✅ Sync ปิดผล</button>
+      </div>
+    </div>
+
+    <div class="statusLine">
+      <span id="dashStatus" class="muted">—</span>
+    </div>
+
+    <div class="metrics">
+      <div class="metric"><div class="k">Bets</div><div id="dBets" class="v">0</div></div>
+      <div class="metric"><div class="k">Pending</div><div id="dPending" class="v">0</div></div>
+      <div class="metric"><div class="k">Win</div><div id="dWin" class="v">0</div></div>
+      <div class="metric"><div class="k">Lose</div><div id="dLose" class="v">0</div></div>
+      <div class="metric"><div class="k">Push</div><div id="dPush" class="v">0</div></div>
+      <div class="metric"><div class="k">ROI</div><div id="dROI" class="v">—</div></div>
+    </div>
+
+    <div style="margin-top:12px">
+      <div class="muted" style="margin-bottom:6px">แยกตามสูตร</div>
+      <div style="overflow:auto;border:1px solid var(--line);border-radius:14px">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Strategy</th>
+              <th>Bets</th>
+              <th>Pending</th>
+              <th>Win</th>
+              <th>Lose</th>
+              <th>Push</th>
+              <th>WinRate</th>
+              <th>ROI</th>
+              <th>Profit</th>
+            </tr>
+          </thead>
+          <tbody id="dashTbl"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
+</div><!-- /#view-dashboard -->
+
+<div id="view-ai" style="display:none">
+  <div class="panel">
+    <div class="panelHead">
+      <div>
+        <div class="panelTitle">AI Optimizer</div>
+        <div class="panelSub">placeholder</div>
+      </div>
+    </div>
+    <div class="muted">ยังไม่เปิดใช้</div>
+  </div>
+</div><!-- /#view-ai -->
+
+
 
   <script>
     // keep-alive / health
@@ -731,6 +797,139 @@
     // init
     setFilters();
     setStatus("พร้อมสแกน");
-  </script>
+// ===== Dashboard (logs-based) =====
+const viewScanner = document.getElementById("view-scanner");
+const viewDashboard = document.getElementById("view-dashboard");
+const viewAI = document.getElementById("view-ai");
+
+const dashDate = document.getElementById("dashDate");
+const btnLoadDash = document.getElementById("btnLoadDash");
+const btnSync = document.getElementById("btnSync");
+const dashStatus = document.getElementById("dashStatus");
+
+const dBets = document.getElementById("dBets");
+const dPending = document.getElementById("dPending");
+const dWin = document.getElementById("dWin");
+const dLose = document.getElementById("dLose");
+const dPush = document.getElementById("dPush");
+const dROI = document.getElementById("dROI");
+const dashTbl = document.getElementById("dashTbl");
+
+function fmtPct(x){
+  if(x==null || isNaN(Number(x))) return "—";
+  return (Number(x)*100).toFixed(2) + "%";
+}
+function fmtNum(x){
+  if(x==null || isNaN(Number(x))) return "—";
+  return Number(x).toFixed(4);
+}
+function todayYMD(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const da = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${da}`;
+}
+
+function showScanner(){
+  if(viewScanner) viewScanner.style.display = "";
+  if(viewDashboard) viewDashboard.style.display = "none";
+  if(viewAI) viewAI.style.display = "none";
+}
+function showDashboard(){
+  if(viewScanner) viewScanner.style.display = "none";
+  if(viewDashboard) viewDashboard.style.display = "";
+  if(viewAI) viewAI.style.display = "none";
+  // auto-load when enter
+  loadDashboard().catch(()=>{});
+}
+function showAI(){
+  if(viewScanner) viewScanner.style.display = "none";
+  if(viewDashboard) viewDashboard.style.display = "none";
+  if(viewAI) viewAI.style.display = "";
+}
+
+async function loadDashboard(){
+  const date = (dashDate && dashDate.value) ? dashDate.value : todayYMD();
+  if(dashDate && !dashDate.value) dashDate.value = date;
+  dashStatus.textContent = "กำลังโหลดสถิติ…";
+
+  const r = await fetch(`/api/summary/day?date=${encodeURIComponent(date)}`);
+  const ct = (r.headers.get("content-type")||"").toLowerCase();
+  if(!ct.includes("application/json")){
+    const txt = await r.text();
+    throw new Error("summary/day ไม่ใช่ JSON: " + txt.slice(0,200));
+  }
+  const data = await r.json();
+  if(data.status !== "success") throw new Error(data.message || "โหลดสถิติไม่สำเร็จ");
+
+  const t = data.totals || {};
+  dBets.textContent = String(t.bets ?? 0);
+  dPending.textContent = String(t.pending ?? 0);
+  dWin.textContent = String(t.wins ?? 0);
+  dLose.textContent = String(t.losses ?? 0);
+  dPush.textContent = String(t.pushes ?? 0);
+  dROI.textContent = fmtPct(t.ROI);
+
+  dashTbl.innerHTML = "";
+  const rows = Array.isArray(data.strategies) ? data.strategies : [];
+  if(!rows.length){
+    dashTbl.innerHTML = `<tr><td colspan="9" class="muted">ยังไม่มีข้อมูลสถิติในวัน ${date}</td></tr>`;
+  }else{
+    for(const s of rows){
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><span class="tag">${s.strategy}</span></td>
+        <td>${s.bets ?? 0}</td>
+        <td>${s.pending ?? 0}</td>
+        <td>${s.wins ?? 0}</td>
+        <td>${s.losses ?? 0}</td>
+        <td>${s.pushes ?? 0}</td>
+        <td>${fmtPct(s.winRate)}</td>
+        <td>${fmtPct(s.ROI)}</td>
+        <td>${fmtNum(s.profitSum)}</td>
+      `;
+      dashTbl.appendChild(tr);
+    }
+  }
+
+  dashStatus.textContent = `โหลดแล้ว: ${date} • Bets ${t.bets ?? 0} • Win ${t.wins ?? 0} • Lose ${t.losses ?? 0} • Pending ${t.pending ?? 0}`;
+}
+
+async function syncResults(){
+  dashStatus.textContent = "กำลัง Sync ปิดผล…";
+  btnSync.disabled = true;
+  try{
+    const r = await fetch("/api/results/sync", { method:"POST", headers:{ "Content-Type":"application/json" }, body: "{}" });
+    const ct = (r.headers.get("content-type")||"").toLowerCase();
+    if(!ct.includes("application/json")){
+      const txt = await r.text();
+      throw new Error("sync ไม่ใช่ JSON: " + txt.slice(0,200));
+    }
+    const data = await r.json();
+    if(data.status !== "success") throw new Error(data.message || "sync ไม่สำเร็จ");
+    dashStatus.textContent = `Sync สำเร็จ • checked ${data.checkedPending ?? 0} • settled ${data.settled ?? 0} • skipped ${data.skipped ?? 0}`;
+    await loadDashboard();
+  }finally{
+    btnSync.disabled = false;
+  }
+}
+
+if(btnLoadDash) btnLoadDash.addEventListener("click", ()=>loadDashboard().catch(e=>dashStatus.textContent="ผิดพลาด: "+(e?.message||e)));
+if(btnSync) btnSync.addEventListener("click", ()=>syncResults().catch(e=>dashStatus.textContent="ผิดพลาด: "+(e?.message||e)));
+
+
+  
+    // ===== Simple hash routing (non-destructive) =====
+    function routeFromHash(){
+      const h = (location.hash || "#scanner").toLowerCase();
+      if(h.includes("dashboard")) showDashboard();
+      else showScanner();
+    }
+    window.addEventListener("hashchange", routeFromHash);
+    // set initial route without breaking existing default
+    setTimeout(routeFromHash, 0);
+
+</script>
 </body>
 </html>

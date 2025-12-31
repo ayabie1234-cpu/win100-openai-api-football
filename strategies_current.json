@@ -2,26 +2,73 @@
   "value_1x2": {
     "label": "Value 1X2 (เทียบราคา)",
     "enabled": true,
-    "params": { "minMinute": 20, "maxMinute": 85, "minEdge": 0.06, "minEV": 0.02 }
+    "params": {
+      "minMinute": 20,
+      "maxMinute": 85,
+      "minEdge": 0.06,
+      "minEV": 0.02
+    }
   },
   "late_pressure_goal": {
     "label": "ท้ายเกมกดดันจัด (ลุ้นประตู)",
     "enabled": true,
-    "params": { "minMinute": 70, "maxMinute": 88, "minPressure": 0.6, "minSOTDiff": 2, "minCornerDiff": 2 }
+    "params": {
+      "minMinute": 70,
+      "maxMinute": 88,
+      "minPressure": 0.6,
+      "minSOTDiff": 2,
+      "minCornerDiff": 2
+    }
   },
   "equalizer_push": {
     "label": "ทีมตาม 1 ลูกแต่บุกหนัก",
     "enabled": true,
-    "params": { "minMinute": 45, "maxMinute": 82, "maxGoalDown": 1, "minPressure": 0.58, "minSOT": 3 }
+    "params": {
+      "minMinute": 45,
+      "maxMinute": 82,
+      "maxGoalDown": 1,
+      "minPressure": 0.58,
+      "minSOT": 3
+    }
   },
   "redcard_filter": {
     "label": "กันใบแดง (ฟิลเตอร์ความเสี่ยง)",
     "enabled": true,
-    "params": { "penalty": 1.2 }
+    "params": {
+      "penalty": 1.2
+    }
   },
   "under_control": {
     "label": "เกมอึดอัด (Under)",
     "enabled": true,
-    "params": { "minMinute": 55, "maxMinute": 80, "maxTotalShotsSum": 16, "maxSOTSum": 6, "maxXgProxySum": 1.9 }
+    "params": {
+      "minMinute": 55,
+      "maxMinute": 80,
+      "maxTotalShotsSum": 16,
+      "maxSOTSum": 6,
+      "maxXgProxySum": 1.9
+    }
+  },
+  "handicap_pressure_home": {
+    "label": "Handicap เจ้าบ้านบุกหนัก (Live AH)",
+    "enabled": true,
+    "params": {
+      "minMinute": 25,
+      "maxMinute": 80,
+      "minPressure": 0.6,
+      "minSOTDiff": 2,
+      "maxGoalDown": 1
+    }
+  },
+  "handicap_pressure_away": {
+    "label": "Handicap ทีมเยือนบุกหนัก (Live AH)",
+    "enabled": true,
+    "params": {
+      "minMinute": 25,
+      "maxMinute": 80,
+      "minPressure": 0.6,
+      "minSOTDiff": 2,
+      "maxGoalDown": 1
+    }
   }
 }
