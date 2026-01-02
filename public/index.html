@@ -3,933 +3,946 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Win100 – Live Scanner</title>
+  <title>Win100 — Live Scanner</title>
   <style>
     :root{
-      --bg:#050a18;
-      --card:#0b132a;
-      --card2:#0a1023;
-      --line:rgba(255,255,255,.08);
-      --txt:#dbeafe;
-      --muted:#93a4c7;
-      --ok:#34d399;
-      --warn:#f59e0b;
-      --bad:#fb7185;
-      --chip:#111b35;
-      --chipLine:rgba(255,255,255,.10);
+      --bg:#0b0f14;
+      --panel:#111823;
+      --panel2:#0f1620;
+      --line:#223041;
+      --text:#e7eef7;
+      --muted:#a9b7c7;
+      --good:#23c483;
+      --bad:#ff5a6a;
+      --warn:#ffcc66;
+      --chip:#1b2633;
+      --btn:#182434;
+      --btn2:#1f2d42;
+      --shadow: 0 10px 40px rgba(0,0,0,.35);
+      --radius:14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
     }
     *{box-sizing:border-box}
-    html,body{height:100%}
     body{
       margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
-      background: radial-gradient(1200px 800px at 30% 0%, #0c1634 0%, var(--bg) 55%, #050816 100%);
-      color:var(--txt);
+      font-family:var(--sans);
+      color:var(--text);
+      background: radial-gradient(1200px 600px at 20% 0%, rgba(35,196,131,.13), transparent 60%),
+                  radial-gradient(1000px 600px at 80% 0%, rgba(84,124,255,.10), transparent 60%),
+                  var(--bg);
     }
     a{color:inherit}
-    .wrap{max-width:1200px;margin:24px auto;padding:0 16px}
+    .wrap{max-width:1200px; margin:0 auto; padding:18px 16px 30px}
     .top{
-      display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      margin-bottom:12px;
     }
-    .brand{
-      display:flex;align-items:center;gap:10px
+    .brand{display:flex; align-items:baseline; gap:10px}
+    .brand h1{margin:0; font-size:18px; letter-spacing:.2px}
+    .brand .sub{color:var(--muted); font-size:12px}
+    .tabs{
+      display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;
     }
-    .ball{
-      width:28px;height:28px;border-radius:50%;
-      display:grid;place-items:center;
-      background: linear-gradient(180deg,#111a38,#070d1f);
-      border:1px solid var(--line);
-      box-shadow: 0 10px 30px rgba(0,0,0,.35);
-      font-size:16px
-    }
-    .title{
-      font-weight:700;
-      font-size:16px;
-      letter-spacing:.2px
-    }
-    .subtitle{
-      font-size:12px;color:var(--muted);margin-top:2px
-    }
-    .tabs{display:flex;gap:10px;align-items:center}
     .tab{
-      display:flex;gap:8px;align-items:center;
-      padding:8px 12px;
-      border-radius:999px;
-      background: rgba(255,255,255,.04);
-      border:1px solid var(--line);
-      color:var(--txt);
+      display:inline-flex; align-items:center; gap:8px;
+      padding:9px 12px; border-radius:999px;
+      background:rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.06);
       text-decoration:none;
-      font-size:13px
+      color:var(--muted);
+      font-size:13px;
     }
-    .dot{
-      width:10px;height:10px;border-radius:50%;
-      background: var(--ok);
-      box-shadow: 0 0 0 4px rgba(52,211,153,.12);
+    .tab.active{
+      color:var(--text);
+      background:rgba(35,196,131,.10);
+      border-color:rgba(35,196,131,.25);
     }
+    .dot{width:10px; height:10px; border-radius:50%; background:var(--good); box-shadow:0 0 0 3px rgba(35,196,131,.15)}
+    .grid{display:grid; grid-template-columns: 370px 1fr; gap:14px}
+    @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
     .panel{
-      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
-      border:1px solid var(--line);
-      border-radius:18px;
-      padding:16px;
-      box-shadow: 0 18px 60px rgba(0,0,0,.35);
-      margin-bottom:14px
+      background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      border:1px solid rgba(255,255,255,.07);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:14px;
     }
     .panelHead{
-      display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px
+      display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
+      margin-bottom:10px;
     }
-    .panelTitle{font-weight:700;font-size:14px}
-    .panelSub{font-size:12px;color:var(--muted)}
-    .rightCtl{display:flex;align-items:center;gap:10px}
+    .panelTitle{font-weight:800; font-size:14px; letter-spacing:.2px}
+    .panelSub{color:var(--muted); font-size:12px; margin-top:3px}
     .btn{
       cursor:pointer;
-      border:1px solid rgba(52,211,153,.25);
-      background: linear-gradient(180deg, rgba(52,211,153,.25), rgba(52,211,153,.15));
-      color:#d1fae5;
-      padding:9px 14px;
-      border-radius:12px;
-      font-weight:700;
-      display:flex;align-items:center;gap:8px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+      border:1px solid rgba(255,255,255,.10);
+      background:var(--btn);
+      color:var(--text);
+      padding:9px 12px;
+      border-radius:10px;
+      font-size:13px;
     }
-    .btn:disabled{opacity:.55;cursor:not-allowed}
-    .chk{
-      display:flex;align-items:center;gap:8px;
-      font-size:12px;color:var(--muted);
-      user-select:none
-    }
-    .grid{
+    .btn:hover{background:var(--btn2)}
+    .btn:disabled{opacity:.6; cursor:not-allowed}
+    .btnRow{display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end}
+    .mini{
       display:grid;
-      grid-template-columns: 360px 1fr;
-      gap:14px;
-    }
-    @media (max-width: 980px){
-      .grid{grid-template-columns:1fr}
-    }
-    .card{
-      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
-      border:1px solid var(--line);
-      border-radius:16px;
-      padding:14px;
-    }
-    .card h3{margin:0 0 10px 0;font-size:13px}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
-    select,input{
-      width:100%;
-      padding:10px 10px;
-      border-radius:12px;
-      border:1px solid rgba(255,255,255,.09);
-      background: rgba(9,14,32,.55);
-      color:var(--txt);
-      outline:none;
-    }
-    .miniGrid{
-      margin-top:14px;
-      display:grid;
-      grid-template-columns: repeat(6, 1fr);
+      grid-template-columns: repeat(3, minmax(0,1fr));
       gap:10px;
     }
-    @media (max-width: 980px){
-      .miniGrid{grid-template-columns: repeat(3, 1fr)}
+    @media (max-width: 980px){ .mini{grid-template-columns: repeat(2, minmax(0,1fr));} }
+    .pill{
+      border-radius:12px;
+      background:rgba(0,0,0,.22);
+      border:1px solid rgba(255,255,255,.06);
+      padding:10px 10px 9px;
     }
-    .mini{
-      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
-      border:1px solid var(--line);
-      border-radius:16px;
-      padding:12px;
-    }
-    .mini .k{font-size:12px;color:var(--muted)}
-    .mini .v{font-size:26px;font-weight:800;margin-top:4px}
-    .mini .v.ok{color:var(--ok)}
-    .mini .v.warn{color:var(--warn)}
-    .mini .v.bad{color:var(--bad)}
-
-    .tableWrap{
-      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
-      border:1px solid var(--line);
-      border-radius:18px;
-      overflow:hidden;
-    }
-    table{
-      width:100%;
-      border-collapse:separate;
-      border-spacing:0;
-      font-size:12px;
-    }
-    thead th{
-      text-align:left;
-      padding:10px 12px;
-      color:#b9c6e6;
-      background: rgba(255,255,255,.03);
-      border-bottom:1px solid var(--line);
-      position:sticky;top:0;z-index:1;
-      white-space:nowrap;
-    }
-    tbody td{
-      padding:12px 12px;
-      border-bottom:1px solid rgba(255,255,255,.06);
-      vertical-align:top;
-    }
-    tbody tr:hover{background: rgba(255,255,255,.02)}
-    .muted{color:var(--muted)}
-    .tag{
-      display:inline-flex;align-items:center;gap:6px;
-      padding:4px 8px;border-radius:999px;
-      background: rgba(255,255,255,.04);
-      border:1px solid rgba(255,255,255,.09);
-      font-size:11px;
-      white-space:nowrap;
-    }
-    .tag.ok{border-color:rgba(52,211,153,.25);color:#d1fae5}
-    .tag.warn{border-color:rgba(245,158,11,.25);color:#fde68a}
-    .tag.bad{border-color:rgba(251,113,133,.25);color:#fecdd3}
-
+    .pill .k{font-size:11px; color:var(--muted); letter-spacing:.2px}
+    .pill .v{font-size:22px; font-weight:900; margin-top:4px}
     .statusLine{
-      display:flex;align-items:center;gap:10px;
-      margin-top:8px;
+      display:flex; align-items:center; gap:10px;
+      color:var(--muted); font-size:12px;
+      padding:10px 12px;
+      border-radius:12px;
+      background:rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.05);
+      margin-top:10px;
+    }
+    .tag{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.03);
       font-size:12px;
       color:var(--muted);
+      white-space:nowrap;
     }
-    .bannerErr{
-      display:none;
-      margin-top:10px;
-      padding:10px 12px;
-      border-radius:14px;
-      background: rgba(251,113,133,.10);
-      border:1px solid rgba(251,113,133,.20);
-      color:#fecdd3;
+    .tag.good{color:var(--good); border-color:rgba(35,196,131,.25); background:rgba(35,196,131,.08)}
+    .tag.bad{color:var(--bad); border-color:rgba(255,90,106,.25); background:rgba(255,90,106,.08)}
+    .filters{display:grid; gap:10px}
+    .frow{display:grid; grid-template-columns: 1fr 1fr; gap:10px}
+    @media (max-width: 980px){ .frow{grid-template-columns:1fr} }
+    label{display:block; font-size:11px; color:var(--muted); margin-bottom:6px}
+    select, input[type="number"], input[type="date"]{
+      width:100%;
+      padding:10px 10px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(0,0,0,.22);
+      color:var(--text);
+      outline:none;
+      font-size:13px;
+    }
+    .tableWrap{
+      overflow:auto;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.06);
+      background:rgba(0,0,0,.18);
+    }
+    table{width:100%; border-collapse:separate; border-spacing:0; min-width:900px}
+    th,td{padding:10px 10px; border-bottom:1px solid rgba(255,255,255,.06); vertical-align:top}
+    th{
+      position:sticky; top:0;
+      background:rgba(10,15,20,.92);
+      backdrop-filter: blur(6px);
+      z-index:2;
+      color:var(--muted);
       font-size:12px;
-      white-space:pre-wrap;
+      text-align:left;
+      font-weight:800;
+      letter-spacing:.25px;
     }
-    body.hasError .bannerErr{display:block}
-
-    /* Make it SUPER clear what to play */
-    .playBox{display:flex;flex-direction:column;gap:4px}
-    .playMain{font-size:13px;line-height:1.2}
-    .playMain b{color:#d1fae5}
-
-    .aiBox{
-      margin-top:14px;
-      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
-      border:1px solid var(--line);
-      border-radius:18px;
-      padding:14px;
-    }
-    .aiItem{
-      padding:10px 12px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.08);
-      background: rgba(9,14,32,.45);
-      margin-top:10px;
-      font-size:12px;
-      color:#cfe2ff;
-    }
-    .aiItem .h{font-weight:800;margin-bottom:4px}
+    td{font-size:13px}
+    tr:hover td{background:rgba(255,255,255,.02)}
+    .mono{font-family:var(--mono); font-size:12px}
+    .muted{color:var(--muted)}
+    details.mini summary::-webkit-details-marker{display:none}
+    details.mini summary{list-style:none}
+    .note{font-size:12px; color:var(--muted); line-height:1.45}
+    .rightCtl{display:flex; gap:8px; align-items:center; justify-content:flex-end; flex-wrap:wrap}
+    .pill .v.small{font-size:18px}
+    .sep{height:1px; background:rgba(255,255,255,.06); margin:12px 0}
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="top">
       <div class="brand">
-        <div class="ball">⚽</div>
-        <div>
-          <div class="title">Win100 – Live Scanner (EV/CLV/Tier + Dedup)</div>
-          <div class="subtitle">สแกนบอลสด | ดูสถิติ | ปรับสูตรด้วย AI</div>
-        </div>
+        <h1>Win100 — Live Scanner</h1>
+        <div class="sub">UI Clean 100% • build <b id="uiBuild">clean-1</b></div>
       </div>
       <div class="tabs">
-        <a class="tab" href="#scanner"><span class="dot"></span> หน้า Scanner สด</a>
-        <a class="tab" href="#dashboard"><span>📊</span> Dashboard สถิติ</a>
-        <a class="tab" href="#ai"><span>🧠</span> AI Optimizer</a>
+        <a class="tab" id="tabScanner" href="#scanner"><span class="dot"></span> Scanner</a>
+        <a class="tab" id="tabDashboard" href="#dashboard">📊 Dashboard</a>
+        <a class="tab" id="tabAI" href="#ai">🧠 AI</a>
       </div>
     </div>
 
-    <div id="view-scanner">
-    <div class="panel">
-      <div class="panelHead">
-        <div>
-          <div class="panelTitle">สแกนบอลสดแบบประหยัดโควต้า (มี Cache/TTL + Dedup)</div>
-          <div id="statusText" class="panelSub">พร้อมสแกน</div>
+    <section id="secScanner">
+      <div class="grid">
+        <div class="panel">
+          <div class="panelHead">
+            <div>
+              <div class="panelTitle">Controls</div>
+              <div class="panelSub">Backend เป็นผู้ตัดสิน (source of truth)</div>
+            </div>
+            <div class="btnRow">
+              <button class="btn" id="btnScan">▶ Scan</button>
+              <button class="btn" id="btnSyncTop">✅ Sync</button>
+            </div>
+          </div>
+
+          <div class="filters">
+            <div class="frow">
+              <div>
+                <label>Strategy</label>
+                <select id="fStrategy">
+                  <option value="">ทั้งหมด</option>
+                </select>
+              </div>
+              <div>
+                <label>Market</label>
+                <select id="fMarket">
+                  <option value="">ทั้งหมด</option>
+                  <option value="HANDICAP">HANDICAP</option>
+                  <option value="TOTAL">TOTAL</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="frow">
+              <div>
+                <label>Min Edge</label>
+                <input id="fMinEdge" type="number" step="0.0001" value="0" />
+              </div>
+              <div>
+                <label>Min Kelly</label>
+                <input id="fMinKelly" type="number" step="0.0001" value="0" />
+              </div>
+            </div>
+
+            <div class="mini">
+              <div class="pill"><div class="k">Fixtures</div><div id="mFixtures" class="v">0</div></div>
+              <div class="pill"><div class="k">Signals</div><div id="mSignals" class="v">0</div></div>
+              <div class="pill"><div class="k">Picks</div><div id="mPicks" class="v">0</div></div>
+              <div class="pill"><div class="k">Tier A</div><div id="mA" class="v small">0</div></div>
+              <div class="pill"><div class="k">Tier B</div><div id="mB" class="v small">0</div></div>
+              <div class="pill"><div class="k">Tier C</div><div id="mC" class="v small">0</div></div>
+            </div>
+
+            <details class="mini" style="margin-top:10px">
+              <summary style="cursor:pointer; user-select:none; color:var(--muted); font-size:12px">
+                📊 Baseline แยกตลาด (คลิกเพื่อดู)
+              </summary>
+              <div class="note" id="mFocus" style="margin-top:8px">HANDICAP: — • TOTAL: —</div>
+            </details>
+
+            <div class="statusLine">
+              <span class="tag" id="tagStatus">—</span>
+              <span id="miniStatus" class="muted">พร้อมสแกน</span>
+            </div>
+          </div>
         </div>
-        <div class="rightCtl">
-          <label class="chk"><input id="autoScan" type="checkbox" /> Auto 20s</label>
-          <button id="btnScan" class="btn">🔄 สแกน</button>
+
+        <div class="panel">
+          <div class="panelHead">
+            <div>
+              <div class="panelTitle">สัญญาณเข้าเงื่อนไข</div>
+              <div class="panelSub">แสดงจากผล /api/scan (picks)</div>
+            </div>
+            <div class="rightCtl">
+              <span class="tag" id="tagCount">0 rows</span>
+              <button class="btn" id="btnClear">🧹 Clear</button>
+            </div>
+          </div>
+
+          <div class="tableWrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>เวลา</th>
+                  <th>ลีก</th>
+                  <th>คู่</th>
+                  <th>Market</th>
+                  <th>เล่นอะไร</th>
+                  <th>Tier</th>
+                  <th>Edge</th>
+                  <th>Kelly</th>
+                  <th>Stake</th>
+                  <th>ราคาเข้า</th>
+                  <th>สกอร์/นาที</th>
+                  <th class="mono">pickId</th>
+                </tr>
+              </thead>
+              <tbody id="tbPicks">
+                <tr><td colspan="12" class="muted">ยังไม่มีสัญญาณ — กด Scan</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <details class="mini" style="margin-top:12px" open>
+            <summary style="cursor:pointer; user-select:none; color:var(--muted); font-size:12px">
+              ⏱ Watchlist (Soft Signals) — จับตาคู่ที่ “ใกล้เข้า” (ไม่ log)
+            </summary>
+            <div class="tableWrap" style="margin-top:10px">
+              <table style="min-width:860px">
+                <thead>
+                  <tr>
+                    <th>คู่</th>
+                    <th>สกอร์/นาที</th>
+                    <th>ใกล้เข้า (Top 2)</th>
+                    <th>สิ่งที่ขาดอยู่</th>
+                    <th class="mono">fixtureId</th>
+                  </tr>
+                </thead>
+                <tbody id="tbWatch">
+                  <tr><td colspan="5" class="muted">—</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="note" style="margin-top:8px">
+              * Watchlist ใช้ข้อมูลจาก <span class="mono">/api/scan?debug=1</span> เพื่อสรุป “ใกล้เข้า” (ไม่สร้าง pick, ไม่เขียน log)
+            </div>
+          </details>
+
+          <div class="note" style="margin-top:10px">
+            * ราคาเข้า (Malay/SBOBET) จะเป็น “—” หากยังไม่มี odds feed (ตอนนี้ใช้ API-Football อย่างเดียว)
+          </div>
         </div>
       </div>
-      <div class="statusLine">
-        <span id="miniStatus">—</span>
-      </div>
-      <div id="errBanner" class="bannerErr"></div>
-    </div>
+    </section>
 
-    <div class="grid">
-      <div class="card">
-        <h3>ตัวกรอง</h3>
-        <div class="row">
-          <div class="field">
-            <label>สูตร</label>
-            <select id="filterStrategy"></select>
+    <section id="secDashboard" style="display:none">
+      <div class="panel">
+        <div class="panelHead">
+          <div>
+            <div class="panelTitle">Daily Summary (Baseline Performance)</div>
+            <div class="panelSub" id="dashStatus">เลือกวัน → Refresh • กด Sync เพื่อปิดผล</div>
           </div>
-          <div class="field">
-            <label>Tier</label>
-            <select id="filterTier"></select>
+          <div class="rightCtl">
+            <input id="dashDate" type="date" />
+            <button class="btn" id="btnDashRefresh">🔁 Refresh</button>
+            <button class="btn" id="btnDashSync">✅ Sync Results</button>
           </div>
         </div>
-        <div class="row" style="margin-top:10px">
-          <div class="field">
-            <label>ขั้นต่ำ Edge</label>
-            <input id="minEdge" type="number" step="0.01" value="0.02" />
+
+        <div class="mini" style="margin-top:10px">
+          <div class="pill"><div class="k">Bets</div><div id="dBets" class="v">0</div></div>
+          <div class="pill"><div class="k">Pending</div><div id="dPending" class="v">0</div></div>
+          <div class="pill"><div class="k">Win</div><div id="dWin" class="v">0</div></div>
+          <div class="pill"><div class="k">Lose</div><div id="dLose" class="v">0</div></div>
+          <div class="pill"><div class="k">Push</div><div id="dPush" class="v">0</div></div>
+          <div class="pill"><div class="k">Profit</div><div id="dProfit" class="v">0</div></div>
+        </div>
+
+        <details class="mini" style="margin-top:10px" open>
+          <summary style="cursor:pointer; user-select:none; color:var(--muted); font-size:12px">
+            📌 แยกตลาด (HANDICAP vs TOTAL)
+          </summary>
+          <div class="mini" style="margin-top:10px">
+            <div class="pill"><div class="k">HANDICAP ROI</div><div id="dRoiH" class="v small">0%</div></div>
+            <div class="pill"><div class="k">HANDICAP Profit</div><div id="dProfitH" class="v small">0</div></div>
+            <div class="pill"><div class="k">TOTAL ROI</div><div id="dRoiT" class="v small">0%</div></div>
+            <div class="pill"><div class="k">TOTAL Profit</div><div id="dProfitT" class="v small">0</div></div>
+            <div class="pill"><div class="k">Overall ROI</div><div id="dRoiAll" class="v small">0%</div></div>
+            <div class="pill"><div class="k">Stake</div><div id="dStake" class="v small">0</div></div>
           </div>
-          <div class="field">
-            <label>ขั้นต่ำ Kelly</label>
-            <input id="minKelly" type="number" step="0.01" value="0.05" />
+        </details>
+
+        <div class="sep"></div>
+
+        <div class="panelHead" style="margin-bottom:8px">
+          <div>
+            <div class="panelTitle">Baseline per Strategy (Market + Strategy)</div>
+            <div class="panelSub">ใช้ผลจริงจาก logs (picks/results)</div>
           </div>
         </div>
-      </div>
 
-      <div class="card">
-        <h3>Risk วันนี้</h3>
-        <div class="row">
-          <div class="mini">
-            <div class="k">วันที่</div>
-            <div id="riskDay" class="v" style="font-size:18px">—</div>
-          </div>
-          <div class="mini">
-            <div class="k">PnL วันนี้</div>
-            <div id="riskPnl" class="v" style="font-size:18px">—</div>
-          </div>
-          <div class="mini">
-            <div class="k">เบ็ตต์</div>
-            <div id="riskBets" class="v" style="font-size:18px">0</div>
-          </div>
-          <div class="mini">
-            <div class="k">สถานะ</div>
-            <div id="riskStatus" class="v" style="font-size:18px">—</div>
-          </div>
+        <div class="tableWrap">
+          <table style="min-width:780px">
+            <thead>
+              <tr>
+                <th>Market</th>
+                <th>Strategy</th>
+                <th>Bets</th>
+                <th>W</th>
+                <th>L</th>
+                <th>P</th>
+                <th>WinRate</th>
+                <th>Profit</th>
+                <th>Stake</th>
+                <th>ROI</th>
+              </tr>
+            </thead>
+            <tbody id="tbBaseline">
+              <tr><td colspan="10" class="muted">—</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
-    </div>
+    </section>
 
-    <div class="miniGrid">
-      <div class="mini">
-        <div class="k">Fixture สด</div>
-        <div id="mFixtures" class="v">0</div>
+    <section id="secAI" style="display:none">
+      <div class="panel">
+        <div class="panelHead">
+          <div>
+            <div class="panelTitle">AI / Optimizer</div>
+            <div class="panelSub">ยังไม่เรียก OpenAI ในระบบ (placeholder)</div>
+          </div>
+        </div>
+        <div class="note">
+          ถ้าจะเพิ่ม OpenAI: ทำเป็น endpoint เสริม เช่น /api/explain/pick, /api/optimizer/suggest โดย backend เป็นผู้ตัดสินเหมือนเดิม
+        </div>
       </div>
-      <div class="mini">
-        <div class="k">สัญญาณทั้งหมด</div>
-        <div id="mSignals" class="v">0</div>
-      </div>
-      <div class="mini">
-        <div class="k">ผ่าน Gate</div>
-        <div id="mGate" class="v ok">0</div>
-      </div>
-      <div class="mini">
-        <div class="k">Tier A</div>
-        <div id="mA" class="v">0</div>
-      </div>
-      <div class="mini">
-        <div class="k">Tier B</div>
-        <div id="mB" class="v">0</div>
-      </div>
-      <div class="mini">
-        <div class="k">Tier C</div>
-        <div id="mC" class="v">0</div>
-      </div>
-    </div>
-
-    <div style="height:14px"></div>
-
-    <div class="tableWrap">
-      <div style="padding:14px 14px 10px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px">
-        <div style="font-weight:800">รายการสัญญาณล่าสุด (Dedup แล้ว)</div>
-        <div class="muted" style="font-size:12px">โชว์เฉพาะ “ล่าสุด/คู่/สูตร/ฝั่ง”</div>
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>เวลา</th>
-            <th>ลีก</th>
-            <th>คู่</th>
-            <th>สูตร</th>
-            <th>เล่นอะไร</th>
-            <th>Tier</th>
-            <th>Stake</th>
-            <th>Edge</th>
-            <th>Kelly</th>
-            <th>ราคาเข้า</th>
-            <th>สกอร์/นาที</th>
-            <th>สถานะ</th>
-          </tr>
-        </thead>
-        <tbody id="tblBody"></tbody>
-      </table>
-    </div>
-
-    <div class="aiBox">
-      <div style="font-weight:800">สรุปจาก AI (ล่าสุดไม่เกิน 6 รายการ)</div>
-      <div id="aiList" class="muted" style="margin-top:10px">—</div>
-    </div>
-  </div></div><!-- /#view-scanner -->
-
-<div id="view-dashboard" style="display:none">
-  <div class="panel">
-    <div class="panelHead">
-      <div>
-        <div class="panelTitle">Dashboard สถิติ (Win/Lose จาก logs)</div>
-        <div class="panelSub">ดึงจาก logs/picks.ndjson + logs/results.ndjson</div>
-      </div>
-      <div class="rightCtl">
-        <input id="dashDate" class="inp" type="date" />
-        <button id="btnLoadDash" class="btn">📊 โหลดสถิติ</button>
-        <button id="btnSync" class="btn">✅ Sync ปิดผล</button>
-      </div>
-    </div>
-
-    <div class="statusLine">
-      <span id="dashStatus" class="muted">—</span>
-    </div>
-
-    <div class="metrics">
-      <div class="metric"><div class="k">Bets</div><div id="dBets" class="v">0</div></div>
-      <div class="metric"><div class="k">Pending</div><div id="dPending" class="v">0</div></div>
-      <div class="metric"><div class="k">Win</div><div id="dWin" class="v">0</div></div>
-      <div class="metric"><div class="k">Lose</div><div id="dLose" class="v">0</div></div>
-      <div class="metric"><div class="k">Push</div><div id="dPush" class="v">0</div></div>
-      <div class="metric"><div class="k">ROI</div><div id="dROI" class="v">—</div></div>
-    </div>
-
-    <div style="margin-top:12px">
-      <div class="muted" style="margin-bottom:6px">แยกตามสูตร</div>
-      <div style="overflow:auto;border:1px solid var(--line);border-radius:14px">
-        <table class="tbl">
-          <thead>
-            <tr>
-              <th>Strategy</th>
-              <th>Bets</th>
-              <th>Pending</th>
-              <th>Win</th>
-              <th>Lose</th>
-              <th>Push</th>
-              <th>WinRate</th>
-              <th>ROI</th>
-              <th>Profit</th>
-            </tr>
-          </thead>
-          <tbody id="dashTbl"></tbody>
-        </table>
-      </div>
-    </div>
+    </section>
   </div>
-</div><!-- /#view-dashboard -->
 
-<div id="view-ai" style="display:none">
-  <div class="panel">
-    <div class="panelHead">
-      <div>
-        <div class="panelTitle">AI Optimizer</div>
-        <div class="panelSub">placeholder</div>
-      </div>
-    </div>
-    <div class="muted">ยังไม่เปิดใช้</div>
-  </div>
-</div><!-- /#view-ai -->
+<script>
+  "use strict";
+  function el(id){ return document.getElementById(id); }
+  function cleanText(v){
+    const s = (v==null ? "" : String(v));
+    if(s.includes("${")) return "";
+    return s.trim();
+  }
+  function cleanTeam(v){ return cleanText(v) || "-"; }
+  function fmtNum(x, d=2){
+    const n = Number(x);
+    if(!Number.isFinite(n)) return "—";
+    return n.toFixed(d);
+  }
+  function pct(x, d=2){
+    const n = Number(x);
+    if(!Number.isFinite(n)) return "0%";
+    return (n*100).toFixed(d) + "%";
+  }
+  async function fetchJsonOrThrow(url, opts){
+    const r = await fetch(url, opts);
+    const ct = (r.headers.get("content-type")||"").toLowerCase();
+    if(ct.includes("application/json")){
+      const data = await r.json();
+      return { r, data };
+    }
+    const t = await r.text();
+    const head = t.slice(0, 220).replace(/\s+/g," ").trim();
+    throw new Error("ไม่ใช่ JSON: " + head);
+  }
+  function setActiveTab(which){
+    const tabScanner = el("tabScanner");
+    const tabDashboard = el("tabDashboard");
+    const tabAI = el("tabAI");
+    [tabScanner, tabDashboard, tabAI].filter(Boolean).forEach(t => t.classList.remove("active"));
+    if(which==="scanner" && tabScanner) tabScanner.classList.add("active");
+    if(which==="dashboard" && tabDashboard) tabDashboard.classList.add("active");
+    if(which==="ai" && tabAI) tabAI.classList.add("active");
+  }
+  function show(which){
+    const secScanner = el("secScanner");
+    const secDashboard = el("secDashboard");
+    const secAI = el("secAI");
+    if(secScanner) secScanner.style.display = (which==="scanner") ? "" : "none";
+    if(secDashboard) secDashboard.style.display = (which==="dashboard") ? "" : "none";
+    if(secAI) secAI.style.display = (which==="ai") ? "" : "none";
+    setActiveTab(which);
+  }
 
+  let lastPicks = [];
+  let lastMeta = {};
+  let strategySet = new Set();
 
+  const btnScan = el("btnScan");
+  const btnClear = el("btnClear");
+  const btnSyncTop = el("btnSyncTop");
+  const fStrategy = el("fStrategy");
+  const fMarket = el("fMarket");
+  const fMinEdge = el("fMinEdge");
+  const fMinKelly = el("fMinKelly");
+  const tbPicks = el("tbPicks");
+  const tbWatch = el("tbWatch");
+  const mFixtures = el("mFixtures");
+  const mSignals = el("mSignals");
+  const mPicks = el("mPicks");
+  const mA = el("mA"), mB = el("mB"), mC = el("mC");
+  const tagStatus = el("tagStatus");
+  const miniStatus = el("miniStatus");
+  const tagCount = el("tagCount");
+  const mFocus = el("mFocus");
 
-  <script>
-    // keep-alive / health
-    // (render/localhost pages)
-  </script>
+  const dashDate = el("dashDate");
+  const btnDashRefresh = el("btnDashRefresh");
+  const btnDashSync = el("btnDashSync");
+  const dashStatus = el("dashStatus");
+  const dBets = el("dBets"), dPending = el("dPending"), dWin = el("dWin"), dLose = el("dLose"), dPush = el("dPush"), dProfit = el("dProfit");
+  const dStake = el("dStake"), dRoiAll = el("dRoiAll");
+  const dRoiH = el("dRoiH"), dProfitH = el("dProfitH"), dRoiT = el("dRoiT"), dProfitT = el("dProfitT");
+  const tbBaseline = el("tbBaseline");
 
-  <script>
-    const STRATEGY_LABEL = {
-      value_1x2: "Value 1X2",
-      late_pressure_goal: "Late Pressure Goal",
-      equalizer_push: "Equalizer Push",
-      redcard_filter: "Redcard Filter",
-      under_control: "Under Control",
-      upstream: "Upstream"
-    };
+  function route(){
+    const h = (location.hash || "#scanner").toLowerCase();
+    if(h.includes("dashboard")){ show("dashboard"); loadDailySummary().catch(()=>{}); }
+    else if(h.includes("ai")){ show("ai"); }
+    else { show("scanner"); }
+  }
+  window.addEventListener("hashchange", route);
 
-    const TIER_LABEL = ["A","B","C"];
+  (function initDate(){
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,"0");
+    const da = String(d.getDate()).padStart(2,"0");
+    if(dashDate) dashDate.value = y + "-" + m + "-" + da;
+  })();
 
-    const el = (id)=>document.getElementById(id);
-
-    const btnScan = el("btnScan");
-    const autoScan = el("autoScan");
-    const statusText = el("statusText");
-    const miniStatus = el("miniStatus");
-    const errBanner = el("errBanner");
-
-    const filterStrategy = el("filterStrategy");
-    const filterTier = el("filterTier");
-    const minEdge = el("minEdge");
-    const minKelly = el("minKelly");
-
-    const tblBody = el("tblBody");
-    const aiList = el("aiList");
-
-    const mFixtures = el("mFixtures");
-    const mSignals = el("mSignals");
-    const mGate = el("mGate");
-    const mA = el("mA");
-    const mB = el("mB");
-    const mC = el("mC");
-
-    const riskDay = el("riskDay");
-    const riskPnl = el("riskPnl");
-    const riskBets = el("riskBets");
-    const riskStatus = el("riskStatus");
-
-    let timer = null;
-    let lastPicks = [];
-
-    function setStatus(msg){
-      statusText.textContent = msg;
-      miniStatus.textContent = msg;
-      // show/hide banner based on msg prefix
-      if(String(msg||"").startsWith("เกิดข้อผิดพลาด")){
-        errBanner.textContent = msg;
-        document.body.classList.add("hasError");
-      }else{
-        errBanner.textContent = "";
-        document.body.classList.remove("hasError");
+  function buildPlayText(p){
+    const market = cleanText(p.market) || "-";
+    const selection = cleanText(p.selection) || cleanText(p.side) || cleanText(p.betType) || "";
+    const line = (p.line!=null ? p.line : p.handicap!=null ? p.handicap : p.totalLine!=null ? p.totalLine : null);
+    const lineTxt = (line==null || line==="") ? "" : String(line);
+    if(market==="HANDICAP"){
+      let who = selection || cleanText(p.team) || "";
+      if(!who){
+        if(p.side==="home") who = cleanTeam(p.home);
+        else if(p.side==="away") who = cleanTeam(p.away);
       }
+      return (who || "-") + " " + (lineTxt || "");
     }
-
-    function labelStrategy(k){
-      return STRATEGY_LABEL[k] || k || "-";
+    if(market==="TOTAL"){
+      const ou = selection || "";
+      const s = ou ? ou.toUpperCase() : "-";
+      return s + " " + (lineTxt || "");
     }
+    return (market + " " + selection + " " + lineTxt).trim();
+  }
 
-    function labelTier(t){
-      if(!t) return "-";
-      const s = String(t).toUpperCase();
-      if(TIER_LABEL.includes(s)) return s;
-      return s;
-    }
+  function leagueText(p){
+    if(typeof p.league === "string") return cleanText(p.league) || "-";
+    if(p.league && typeof p.league === "object" && p.league.name) return cleanText(p.league.name) || "-";
+    return cleanText(p.leagueName) || cleanText(p.league_name) || "-";
+  }
+  function edgeText(p){
+    const e = (p.edge!=null ? Number(p.edge) : (p.metrics && p.metrics.edge!=null ? Number(p.metrics.edge) : NaN));
+    return Number.isFinite(e) ? e.toFixed(4) : "—";
+  }
+  function kellyText(p){
+    const k = (p.kelly!=null ? Number(p.kelly) : (p.metrics && p.metrics.kelly!=null ? Number(p.metrics.kelly) : NaN));
+    return Number.isFinite(k) ? k.toFixed(4) : "—";
+  }
+  function stakeText(p){
+    const s = (p.stake!=null ? p.stake : p.stakeUnit!=null ? p.stakeUnit : null);
+    return (s==null ? "—" : String(s));
+  }
+  function priceText(p){
+    const v = (p.priceTaken!=null ? p.priceTaken :
+              p.price!=null ? p.price :
+              p.odds!=null ? p.odds :
+              p.oddsDecimal!=null ? p.oddsDecimal :
+              null);
+    return (v==null ? "—" : String(v));
+  }
+  function scoreMinuteText(p){
+    const scoreText = (p.scoreAtScan!=null) ? String(p.scoreAtScan)
+      : (p.scoreHome!=null || p.scoreAway!=null) ? (String(p.scoreHome ?? "-") + "-" + String(p.scoreAway ?? "-"))
+      : (p.score && typeof p.score==="object" && (p.score.home!=null || p.score.away!=null)) ? (String(p.score.home ?? "-") + "-" + String(p.score.away ?? "-"))
+      : null;
 
-    function tagTier(t){
-      const s = labelTier(t);
-      if(s==="A") return `<span class="tag ok">Tier ${s}</span>`;
-      if(s==="B") return `<span class="tag warn">Tier ${s}</span>`;
-      if(s==="C") return `<span class="tag bad">Tier ${s}</span>`;
-      return `<span class="tag">Tier ${s}</span>`;
-    }
+    const minuteText = (p.minuteAtScan!=null) ? String(p.minuteAtScan)
+      : (p.minute!=null) ? String(p.minute)
+      : (p.elapsed!=null) ? String(p.elapsed)
+      : (p.time && typeof p.time==="object" && p.time.elapsed!=null) ? String(p.time.elapsed)
+      : null;
 
-    // --- Play / Bet instruction helpers (UI clarity) ---
-    function betSideThai(side){
-      const s = String(side||"").toLowerCase();
-      const map = {
-        home: "เจ้าบ้าน", away: "ทีมเยือน", draw: "เสมอ",
-        over: "สูง", under: "ต่ำ",
-        "1": "เจ้าบ้าน", "2": "ทีมเยือน", "x": "เสมอ"
-      };
-      return map[s] || (side ? String(side) : "");
-    }
+    if(scoreText==null && minuteText==null) return "-";
+    return (scoreText!=null?scoreText:"-") + " / " + (minuteText!=null?minuteText:"-") + "'";
+  }
 
-    // Convert strings like "over_0_5" -> {ou:"over", line:"0.5"}
-    function parseOuSelection(sel){
-      if(!sel) return null;
-      const m = String(sel).match(/^(over|under)_(\d+(?:_\d+)*)$/i);
-      if(!m) return null;
-      const ou = m[1].toLowerCase();
-      const line = m[2].split("_").join(".");
-      return { ou, line };
-    }
+  // ===== Watchlist (Soft Signals) =====
+  function normalizeReason(r){
+    const s = cleanText(r);
+    if(!s) return "";
+    // Ignore placeholder builder warnings (ไม่ใช่เหตุผลเชิงเงื่อนไข)
+    if(s.toLowerCase().includes("builder not included")) return "";
+    return s;
+  }
 
-    function formatPlayPlain(p){
-      if(!p) return "-";
-      // Prefer explicit note (already human-friendly)
-      if(p.note) return String(p.note);
+  function buildWatchRows(debug){
+    if(!debug || !Array.isArray(debug.rejected)) return [];
+    const rows = [];
+    for(const fx of debug.rejected){
+      const fixtureId = fx.fixtureId;
+      const home = cleanTeam(fx.home);
+      const away = cleanTeam(fx.away);
+      const minute = fx.minute != null ? String(fx.minute) : "-";
+      const score = cleanText(fx.score) || "-";
+      const strategies = Array.isArray(fx.rejected) ? fx.rejected : [];
 
-      // If server provides betType/market/selection/line/price fields
-      const betType = p.betType || p.bet_type;
-      const market = p.market || p.marketType;
-      const selection = p.selection || p.pick || p.betSelection;
-      const line = (p.line ?? p.handicap ?? p.total);
-
-      // O/U selection pattern
-      const ou = parseOuSelection(selection);
-      if(ou){
-        const mk = market ? String(market).toUpperCase() : "TOTAL";
-        const side = ou.ou === "over" ? "สูง" : "ต่ำ";
-        const odds = (p.price!=null ? p.price : p.odds!=null ? p.odds : null);
-        return `เล่น: ${side} ${ou.line} (${mk})${odds?` @${odds}`:""}`;
-      }
-
-      // 1X2 common selections
-      const selNorm = selection ? String(selection).toLowerCase() : "";
-      if(["home","away","draw","1","2","x"].includes(selNorm)){
-        const side = betSideThai(selNorm);
-        const odds = (p.price!=null ? p.price : p.odds!=null ? p.odds : null);
-        return `เล่น: ${side} (1X2)${odds?` @${odds}`:""}`;
-      }
-
-      // Generic: use betSide + possible line
-      const side2 = betSideThai(p.betSide);
-      if(side2){
-        const odds = (p.price!=null ? p.price : p.odds!=null ? p.odds : null);
-        return `เล่น: ${side2}${line!=null?` ${line}`:""}${odds?` @${odds}`:""}`;
-      }
-
-      // Last resort: show whatever is available
-      const parts = [];
-      if(betType) parts.push(String(betType));
-      if(market) parts.push(String(market));
-      if(selection) parts.push(String(selection));
-      if(line!=null) parts.push(String(line));
-      return parts.length ? `เล่น: ${parts.join(" • ")}` : "-";
-    }
-
-    function formatPlayHTML(p){
-      const t = formatPlayPlain(p);
-      const safe = String(t).replace(/</g,"&lt;").replace(/>/g,"&gt;");
-      return `<div class="playBox"><div class="playMain">${safe.replace(/^เล่น:\s*/,"<b>เล่น:</b> ")}</div></div>`;
-    }
-
-    function timeHM(ts){
-      if(!ts) return "-";
-      const d = new Date(ts);
-      if(isNaN(d.getTime())) return String(ts);
-      const hh = String(d.getHours()).padStart(2,"0");
-      const mm = String(d.getMinutes()).padStart(2,"0");
-      return `${hh}:${mm}`;
-    }
-
-    function setFilters(){
-      // Strategy
-      const stratKeys = Object.keys(STRATEGY_LABEL);
-      filterStrategy.innerHTML =
-        `<option value="">ทั้งหมด</option>` +
-        stratKeys.map(k=>`<option value="${k}">${k}</option>`).join("");
-
-      // Tier
-      filterTier.innerHTML =
-        `<option value="">ทั้งหมด</option>` +
-        ["A","B","C"].map(t=>`<option value="${t}">Tier ${t}</option>`).join("");
-    }
-
-    function updateRisk(risk){
-      if(!risk){
-        riskDay.textContent = "—";
-        riskPnl.textContent = "—";
-        riskBets.textContent = "0";
-        riskStatus.textContent = "—";
-        return;
-      }
-      riskDay.textContent = risk.day || "—";
-      riskPnl.textContent = (risk.pnl!=null ? String(risk.pnl) : "—");
-      riskBets.textContent = (risk.bets!=null ? String(risk.bets) : "0");
-      riskStatus.textContent = risk.status || "ACTIVE";
-    }
-
-    function passGate(p){
-      const me = parseFloat(minEdge.value || "0");
-      const mk = parseFloat(minKelly.value || "0");
-      const edge = parseFloat(p.edge || "0");
-      const kelly = parseFloat(p.kelly || "0");
-      return edge >= me && kelly >= mk;
-    }
-
-    function render(picks, meta){
-      const sFilter = filterStrategy.value || "";
-      const tFilter = (filterTier.value || "").toUpperCase();
-
-      const filtered = (picks||[]).filter(p=>{
-        if(sFilter && p.strategy !== sFilter) return false;
-        if(tFilter && String(p.tier||"").toUpperCase() !== tFilter) return false;
-        return true;
+      // Score closeness: fewer real reasons => closer
+      const scored = strategies.map(st => {
+        const reasons = Array.isArray(st.reasons) ? st.reasons.map(normalizeReason).filter(Boolean) : [];
+        return {
+          strategy: cleanText(st.strategy) || "-",
+          label: cleanText(st.label) || cleanText(st.strategy) || "-",
+          reasons,
+          reasonCount: reasons.length
+        };
       });
 
-      const totalFixtures = meta?.totalFixtures ?? 0;
-      const totalPicks = meta?.totalPicks ?? filtered.length;
+      // Prefer strategies that have explicit reasons (we can show what's missing)
+      // Sort: reasonCount asc, but push "no reasons" to the end because it's usually "no trigger" (not actionable)
+      scored.sort((a,b)=>{
+        const ax = (a.reasonCount===0 ? 999 : a.reasonCount);
+        const bx = (b.reasonCount===0 ? 999 : b.reasonCount);
+        return ax - bx;
+      });
 
-      // minis
-      mFixtures.textContent = String(totalFixtures);
-      mSignals.textContent = String(totalPicks);
+      const top = scored.slice(0,2);
+      // If top strategies are actually "no trigger" only, still show them but mark accordingly
+      const topText = top.map(t => t.label).join(" • ") || "-";
 
-      let gate=0, a=0,b=0,c=0;
-      for(const p of filtered){
-        if(passGate(p)) gate++;
-        const t = String(p.tier||"").toUpperCase();
-        if(t==="A") a++; else if(t==="B") b++; else if(t==="C") c++;
-      }
-      mGate.textContent = String(gate);
-      mA.textContent = String(a);
-      mB.textContent = String(b);
-      mC.textContent = String(c);
+      const missing = top
+        .flatMap(t => t.reasons.length ? t.reasons : [`${t.label}: (ยังไม่มี trigger/เงื่อนไขไม่ตรง)`])
+        .slice(0,4);
 
-      // table
-      tblBody.innerHTML = "";
-      if(!filtered.length){
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td colspan="12" class="muted">ยังไม่มีรายการ (ลองกด “สแกน” หรือรอสัญญาณเข้าเงื่อนไข)</td>`;
-        tblBody.appendChild(tr);
-      }else{
-        for(const p of filtered.slice(0,50)){
-          const tr = document.createElement("tr");
-          const match = `${p.home||"-"} vs ${p.away||"-"}`;
-          const scoreMin = (p.scoreAtScan!=null || p.minuteAtScan!=null)
-            ? `${p.scoreAtScan!=null?p.scoreAtScan:"-"} / ${p.minuteAtScan!=null?p.minuteAtScan:"-"}'`
-            : "-";
-
-          const stake = (p.stake!=null ? p.stake : p.stakeUnit!=null ? p.stakeUnit : null);
-          const stakeTxt = (stake==null ? "—" : String(stake));
-
-          const edgeTxt = (p.edge!=null ? Number(p.edge).toFixed(4) : "—");
-          const kellyTxt = (p.kelly!=null ? Number(p.kelly).toFixed(4) : "—");
-          const priceTxt = (p.priceTaken!=null ? p.priceTaken : p.price!=null ? p.price : "—");
-
-          const st = String(p.status||"PENDING").toUpperCase();
-          const stTag = st==="ACTIVE"
-            ? `<span class="tag ok">ACTIVE</span>`
-            : st==="WON"
-              ? `<span class="tag ok">WON</span>`
-              : st==="LOST"
-                ? `<span class="tag bad">LOST</span>`
-                : `<span class="tag warn">${st}</span>`;
-
-          tr.innerHTML = `
-            <td class="muted">${timeHM(p.ts)}</td>
-            <td>${p.league||"-"}</td>
-            <td>${match}</td>
-            <td><span class="tag">${p.strategy||"-"}</span><div class="muted" style="margin-top:4px">${labelStrategy(p.strategy)}</div></td>
-            <td>${formatPlayHTML(p)}</td>
-            <td>${tagTier(p.tier)}</td>
-            <td>${stakeTxt}</td>
-            <td>${edgeTxt}</td>
-            <td>${kellyTxt}</td>
-            <td>${priceTxt}</td>
-            <td class="muted">${scoreMin}</td>
-            <td>${stTag}</td>
-          `;
-          tblBody.appendChild(tr);
-        }
-      }
-
-      // AI-like quick summary (no model call, just readable)
-      if(!filtered.length){
-        aiList.textContent = "—";
-      }else{
-        aiList.innerHTML = "";
-        const top = filtered.slice(0,6);
-        for(const p of top){
-          const div = document.createElement("div");
-          div.className = "aiItem";
-          const match = `${p.home||"-"} vs ${p.away||"-"}`;
-          div.innerHTML = `
-            <div class="h">${timeHM(p.ts)} • ${p.league||"-"} • ${match}</div>
-            <div>${formatPlayHTML(p)}</div>
-            <div class="muted" style="margin-top:6px">สูตร: ${p.strategy||"-"} (${labelStrategy(p.strategy)}) • ${labelTier(p.tier)} • Edge ${p.edge!=null?Number(p.edge).toFixed(4):"—"} • Kelly ${p.kelly!=null?Number(p.kelly).toFixed(4):"—"}</div>
-          `;
-          aiList.appendChild(div);
-        }
-      }
+      rows.push({
+        fixtureId,
+        match: `${home} vs ${away}`,
+        scoreMin: `${score} / ${minute}'`,
+        topText,
+        missingText: missing.join(" | ") || "-",
+        closeness: Math.min(...top.map(t => (t.reasonCount===0 ? 999 : t.reasonCount)), 999)
+      });
     }
-
-    async function scanNow(){
-      try{
-        setStatus("กำลังสแกน…");
-        btnScan.disabled = true;
-
-        const r = await fetch("/api/scan", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: "{}"
-        });
-
-        const ct = (r.headers.get("content-type")||"").toLowerCase();
-        let data;
-        if(ct.includes("application/json")){
-          data = await r.json();
-        }else{
-          const txt = await r.text();
-          const head = txt.slice(0, 200).replace(/\s+/g," ").trim();
-          throw new Error(`เซิร์ฟเวอร์ตอบกลับไม่ใช่ JSON (content-type: ${ct||"unknown"}) • ${head}`);
-        }
-
-        const ok = (data.status === "success") || (data.ok === true);
-        if(!ok){
-          throw new Error(data.message || data.error || "สแกนไม่สำเร็จ");
-        }
-
-        lastPicks = data.picks || data.signals || [];
-        updateRisk(data.risk || null);
-
-        const totalFixtures = data.totalFixtures ?? data.liveCount ?? 0;
-        const totalPicks = data.totalPicks ?? data.signalsCount ?? (lastPicks.length||0);
-
-        render(lastPicks, { totalFixtures, totalPicks });
-
-        if(totalPicks > 0){
-          setStatus(`สแกนสำเร็จ: Fixtures ${totalFixtures} • Picks ${totalPicks}`);
-        }else{
-          setStatus(`สแกนสำเร็จ แต่ยังไม่มีสัญญาณเข้าเงื่อนไข • Fixtures ${totalFixtures} • Picks 0`);
-        }
-      }catch(e){
-        console.error(e);
-        setStatus("เกิดข้อผิดพลาด: " + (e?.message || e));
-        document.body.classList.add("hasError");
-      }finally{
-        btnScan.disabled = false;
-      }
-    }
-
-    function startAuto(){
-      stopAuto();
-      timer = setInterval(()=>scanNow(), 20000);
-    }
-    function stopAuto(){
-      if(timer){ clearInterval(timer); timer=null; }
-    }
-
-    btnScan.addEventListener("click", ()=>scanNow());
-    autoScan.addEventListener("change", ()=>{
-      if(autoScan.checked) startAuto();
-      else stopAuto();
-    });
-
-    filterStrategy.addEventListener("change", ()=>render(lastPicks, {totalFixtures: Number(mFixtures.textContent||0), totalPicks: Number(mSignals.textContent||0)}));
-    filterTier.addEventListener("change", ()=>render(lastPicks, {totalFixtures: Number(mFixtures.textContent||0), totalPicks: Number(mSignals.textContent||0)}));
-    minEdge.addEventListener("input", ()=>render(lastPicks, {totalFixtures: Number(mFixtures.textContent||0), totalPicks: Number(mSignals.textContent||0)}));
-    minKelly.addEventListener("input", ()=>render(lastPicks, {totalFixtures: Number(mFixtures.textContent||0), totalPicks: Number(mSignals.textContent||0)}));
-
-    // init
-    setFilters();
-    setStatus("พร้อมสแกน");
-// ===== Dashboard (logs-based) =====
-const viewScanner = document.getElementById("view-scanner");
-const viewDashboard = document.getElementById("view-dashboard");
-const viewAI = document.getElementById("view-ai");
-
-const dashDate = document.getElementById("dashDate");
-const btnLoadDash = document.getElementById("btnLoadDash");
-const btnSync = document.getElementById("btnSync");
-const dashStatus = document.getElementById("dashStatus");
-
-const dBets = document.getElementById("dBets");
-const dPending = document.getElementById("dPending");
-const dWin = document.getElementById("dWin");
-const dLose = document.getElementById("dLose");
-const dPush = document.getElementById("dPush");
-const dROI = document.getElementById("dROI");
-const dashTbl = document.getElementById("dashTbl");
-
-function fmtPct(x){
-  if(x==null || isNaN(Number(x))) return "—";
-  return (Number(x)*100).toFixed(2) + "%";
-}
-function fmtNum(x){
-  if(x==null || isNaN(Number(x))) return "—";
-  return Number(x).toFixed(4);
-}
-function todayYMD(){
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth()+1).padStart(2,"0");
-  const da = String(d.getDate()).padStart(2,"0");
-  return `${y}-${m}-${da}`;
-}
-
-function showScanner(){
-  if(viewScanner) viewScanner.style.display = "";
-  if(viewDashboard) viewDashboard.style.display = "none";
-  if(viewAI) viewAI.style.display = "none";
-}
-function showDashboard(){
-  if(viewScanner) viewScanner.style.display = "none";
-  if(viewDashboard) viewDashboard.style.display = "";
-  if(viewAI) viewAI.style.display = "none";
-  // auto-load when enter
-  loadDashboard().catch(()=>{});
-}
-function showAI(){
-  if(viewScanner) viewScanner.style.display = "none";
-  if(viewDashboard) viewDashboard.style.display = "none";
-  if(viewAI) viewAI.style.display = "";
-}
-
-async function loadDashboard(){
-  const date = (dashDate && dashDate.value) ? dashDate.value : todayYMD();
-  if(dashDate && !dashDate.value) dashDate.value = date;
-  dashStatus.textContent = "กำลังโหลดสถิติ…";
-
-  const r = await fetch(`/api/summary/day?date=${encodeURIComponent(date)}`);
-  const ct = (r.headers.get("content-type")||"").toLowerCase();
-  if(!ct.includes("application/json")){
-    const txt = await r.text();
-    throw new Error("summary/day ไม่ใช่ JSON: " + txt.slice(0,200));
+    // Sort by closeness then fixtureId
+    rows.sort((a,b)=> a.closeness - b.closeness || (a.fixtureId||0)-(b.fixtureId||0));
+    return rows;
   }
-  const data = await r.json();
-  if(data.status !== "success") throw new Error(data.message || "โหลดสถิติไม่สำเร็จ");
 
-  const t = data.totals || {};
-  dBets.textContent = String(t.bets ?? 0);
-  dPending.textContent = String(t.pending ?? 0);
-  dWin.textContent = String(t.wins ?? 0);
-  dLose.textContent = String(t.losses ?? 0);
-  dPush.textContent = String(t.pushes ?? 0);
-  dROI.textContent = fmtPct(t.ROI);
-
-  dashTbl.innerHTML = "";
-  const rows = Array.isArray(data.strategies) ? data.strategies : [];
-  if(!rows.length){
-    dashTbl.innerHTML = `<tr><td colspan="9" class="muted">ยังไม่มีข้อมูลสถิติในวัน ${date}</td></tr>`;
-  }else{
-    for(const s of rows){
+  function renderWatchlist(debug){
+    if(!tbWatch) return;
+    const rows = buildWatchRows(debug);
+    if(!rows.length){
+      tbWatch.innerHTML = '<tr><td colspan="5" class="muted">ไม่มี watchlist (ยังไม่มี live หรือไม่มี debug)</td></tr>';
+      return;
+    }
+    // limit rows
+    const lim = rows.slice(0, 12);
+    tbWatch.innerHTML = "";
+    for(const r of lim){
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td><span class="tag">${s.strategy}</span></td>
-        <td>${s.bets ?? 0}</td>
-        <td>${s.pending ?? 0}</td>
-        <td>${s.wins ?? 0}</td>
-        <td>${s.losses ?? 0}</td>
-        <td>${s.pushes ?? 0}</td>
-        <td>${fmtPct(s.winRate)}</td>
-        <td>${fmtPct(s.ROI)}</td>
-        <td>${fmtNum(s.profitSum)}</td>
+        <td><b>${r.match}</b></td>
+        <td class="mono">${r.scoreMin}</td>
+        <td>${r.topText}</td>
+        <td class="muted">${r.missingText}</td>
+        <td class="mono">${r.fixtureId ?? "-"}</td>
       `;
-      dashTbl.appendChild(tr);
+      tbWatch.appendChild(tr);
     }
   }
 
-  dashStatus.textContent = `โหลดแล้ว: ${date} • Bets ${t.bets ?? 0} • Win ${t.wins ?? 0} • Lose ${t.losses ?? 0} • Pending ${t.pending ?? 0}`;
-}
+  function applyFilters(rows){
+    const sKey = (fStrategy && fStrategy.value) ? fStrategy.value : "";
+    const mkt = (fMarket && fMarket.value) ? fMarket.value : "";
+    const minEdge = (fMinEdge && fMinEdge.value!=="") ? Number(fMinEdge.value) : 0;
+    const minKelly = (fMinKelly && fMinKelly.value!=="") ? Number(fMinKelly.value) : 0;
 
-async function syncResults(){
-  dashStatus.textContent = "กำลัง Sync ปิดผล…";
-  btnSync.disabled = true;
-  try{
-    const r = await fetch("/api/results/sync", { method:"POST", headers:{ "Content-Type":"application/json" }, body: "{}" });
-    const ct = (r.headers.get("content-type")||"").toLowerCase();
-    if(!ct.includes("application/json")){
-      const txt = await r.text();
-      throw new Error("sync ไม่ใช่ JSON: " + txt.slice(0,200));
-    }
-    const data = await r.json();
-    if(data.status !== "success") throw new Error(data.message || "sync ไม่สำเร็จ");
-    dashStatus.textContent = `Sync สำเร็จ • checked ${data.checkedPending ?? 0} • settled ${data.settled ?? 0} • skipped ${data.skipped ?? 0}`;
-    await loadDashboard();
-  }finally{
-    btnSync.disabled = false;
+    return rows.filter(p=>{
+      if(sKey && cleanText(p.strategy) !== sKey) return false;
+      if(mkt && cleanText(p.market) !== mkt) return false;
+      const e = (p.edge!=null ? Number(p.edge) : NaN);
+      const k = (p.kelly!=null ? Number(p.kelly) : NaN);
+      if(Number.isFinite(minEdge) && minEdge>0 && !(Number.isFinite(e) && e>=minEdge)) return false;
+      if(Number.isFinite(minKelly) && minKelly>0 && !(Number.isFinite(k) && k>=minKelly)) return false;
+      return true;
+    });
   }
-}
 
-if(btnLoadDash) btnLoadDash.addEventListener("click", ()=>loadDashboard().catch(e=>dashStatus.textContent="ผิดพลาด: "+(e?.message||e)));
-if(btnSync) btnSync.addEventListener("click", ()=>syncResults().catch(e=>dashStatus.textContent="ผิดพลาด: "+(e?.message||e)));
+  function renderPicks(){
+    if(!tbPicks) return;
+    const rows = applyFilters(lastPicks);
+    if(tagCount) tagCount.textContent = rows.length + " rows";
 
-
-  
-    // ===== Simple hash routing (non-destructive) =====
-    function routeFromHash(){
-      const h = (location.hash || "#scanner").toLowerCase();
-      if(h.includes("dashboard")) showDashboard();
-      else showScanner();
+    if(!rows.length){
+      const fx = lastMeta._totalFixtures ?? lastMeta.fixtures ?? 0;
+      const msgEl = document.getElementById("noPickMsg");
+      if(msgEl){
+        msgEl.innerHTML = `สแกนแล้ว <b>${fx}</b> คู่ LIVE<br>ยังไม่พบสัญญาณที่ผ่านเงื่อนไขสูตร`;
+      }
+      tbPicks.innerHTML = '<tr><td colspan="12" class="muted"><span id="noPickMsg"></span></td></tr>';
+      return;
     }
-    window.addEventListener("hashchange", routeFromHash);
-    // set initial route without breaking existing default
-    setTimeout(routeFromHash, 0);
+    tbPicks.innerHTML = "";
+    for(const p of rows){
+      const ts = cleanText(p.ts) || cleanText(p.time) || "";
+      const timeTxt = ts ? ts : "—";
+      const league = leagueText(p);
+      const match = cleanTeam(p.home) + " vs " + cleanTeam(p.away);
+      const market = cleanText(p.market) || "—";
+      const play = buildPlayText(p);
+      const tier = cleanText(p.tier) || "—";
+      const edge = edgeText(p);
+      const kelly = kellyText(p);
+      const stake = stakeText(p);
+      const price = priceText(p);
+      const scoreMin = scoreMinuteText(p);
+      const pickId = cleanText(p.pickId) || "—";
 
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="mono">${timeTxt}</td>
+        <td>${league}</td>
+        <td><b>${match}</b></td>
+        <td><span class="tag">${market}</span></td>
+        <td>${play}</td>
+        <td><span class="tag">${tier}</span></td>
+        <td class="mono">${edge}</td>
+        <td class="mono">${kelly}</td>
+        <td class="mono">${stake}</td>
+        <td class="mono">${price}</td>
+        <td class="mono">${scoreMin}</td>
+        <td class="mono">${pickId}</td>
+      `;
+      tbPicks.appendChild(tr);
+    }
+  }
+
+  function updateStrategyOptions(picks){
+    if(!fStrategy) return;
+    let changed = false;
+    for(const p of picks){
+      const k = cleanText(p.strategy);
+      if(k && !strategySet.has(k)){
+        strategySet.add(k);
+        changed = true;
+      }
+    }
+    if(!changed) return;
+    const cur = fStrategy.value || "";
+    const keys = Array.from(strategySet).sort();
+    fStrategy.innerHTML = '<option value="">ทั้งหมด</option>' + keys.map(k=>`<option value="${k}">${k}</option>`).join("");
+    fStrategy.value = cur;
+  }
+
+  function setStatus(ok, msg){
+    if(tagStatus){
+      tagStatus.className = "tag " + (ok ? "good" : "bad");
+      tagStatus.textContent = ok ? "OK" : "ERROR";
+    }
+    if(miniStatus) miniStatus.textContent = msg || "—";
+  }
+
+  function setScanMetrics(meta, picks){
+    const fixtures = Number(meta.fixtures || meta.fixtureCount || meta.totalFixtures || 0) || 0;
+    const signals = Number(meta.signals || meta.signalCount || meta.totalSignals || 0) || 0;
+    const totalPicks = picks.length;
+
+    if(mFixtures) mFixtures.textContent = String(fixtures);
+    if(mSignals) mSignals.textContent = String(signals);
+    if(mPicks) mPicks.textContent = String(totalPicks);
+
+    let a=0,b=0,c=0;
+    for(const p of picks){
+      const t = cleanText(p.tier).toUpperCase();
+      if(t==="A") a++;
+      else if(t==="B") b++;
+      else if(t==="C") c++;
+    }
+    if(mA) mA.textContent = String(a);
+    if(mB) mB.textContent = String(b);
+    if(mC) mC.textContent = String(c);
+
+    if(mFocus){
+      const h = meta.focus && meta.focus.HANDICAP ? meta.focus.HANDICAP : null;
+      const t = meta.focus && meta.focus.TOTAL ? meta.focus.TOTAL : null;
+      if(h || t){
+        const ht = h ? ("HANDICAP: ROI " + pct(h.roi||0,2) + " • P/L " + fmtNum(h.profit||0,2)) : "HANDICAP: —";
+        const tt = t ? ("TOTAL: ROI " + pct(t.roi||0,2) + " • P/L " + fmtNum(t.profit||0,2)) : "TOTAL: —";
+        mFocus.textContent = ht + " • " + tt;
+      }
+    }
+  }
+
+  async function doScan(){
+    try{
+      if(btnScan) btnScan.disabled = true;
+      setStatus(true, "กำลังสแกน…");
+      const { data } = await fetchJsonOrThrow("/api/scan?debug=1", { method:"POST", headers:{ "Content-Type":"application/json" }, body:"{}" });
+      const ok = (data && (data.status==="success" || data.ok===true || Array.isArray(data.picks)));
+      if(!ok) throw new Error(data.message || data.error || "สแกนไม่สำเร็จ");
+
+      const picks = Array.isArray(data.picks) ? data.picks : [];
+      lastPicks = picks;
+      lastMeta = data.meta || data.stats || {};
+      lastMeta._totalFixtures = data.totalFixtures ?? lastMeta.fixtures ?? 0;
+      updateStrategyOptions(picks);
+      setScanMetrics(lastMeta, picks);
+
+      if(picks.length===0){
+        setStatus(true, `สแกนสำเร็จ: พบ ${lastMeta._totalFixtures ?? 0} คู่ LIVE แต่ยังไม่เข้าเงื่อนไขสูตร`);
+      }else{
+        setStatus(true, `สแกนสำเร็จ: ${picks.length} สัญญาณ`);
+      }
+      renderPicks();
+      renderWatchlist(data.debug);
+    }catch(e){
+      console.error(e);
+      setStatus(false, String(e.message || e));
+      if(tbPicks) tbPicks.innerHTML = '<tr><td colspan="12" class="muted">สแกนผิดพลาด: ' + String(e.message||e) + '</td></tr>';
+    }finally{
+      if(btnScan) btnScan.disabled = false;
+    }
+  }
+
+  async function doSync(where){
+    const btn = (where==="dash") ? btnDashSync : btnSyncTop;
+    try{
+      if(btn) btn.disabled = true;
+      if(where==="dash" && dashStatus) dashStatus.textContent = "กำลัง Sync results…";
+      if(where!=="dash") setStatus(true, "กำลัง Sync results…");
+
+      const { data } = await fetchJsonOrThrow("/api/results/sync", { method:"POST", headers:{ "Content-Type":"application/json" }, body:"{}" });
+      const ok = (data && (data.status==="success" || data.ok===true));
+      if(!ok) throw new Error(data.message || data.error || "Sync ไม่สำเร็จ");
+
+      const msg = "Sync สำเร็จ • checked " + (data.checkedPending ?? "-") + " • settled " + (data.settled ?? "-") + " • skipped " + (data.skipped ?? "-");
+      if(where==="dash" && dashStatus) dashStatus.textContent = msg;
+      if(where!=="dash") setStatus(true, msg);
+
+      if(location.hash.toLowerCase().includes("dashboard")){
+        await loadDailySummary();
+      }
+    }catch(e){
+      console.error(e);
+      const msg = "Sync error: " + String(e.message || e);
+      if(where==="dash" && dashStatus) dashStatus.textContent = msg;
+      if(where!=="dash") setStatus(false, msg);
+    }finally{
+      if(btn) btn.disabled = false;
+    }
+  }
+
+  function clearPicks(){
+    lastPicks = [];
+    renderPicks();
+    if(mPicks) mPicks.textContent = "0";
+    if(tagCount) tagCount.textContent = "0 rows";
+    setStatus(true, "เคลียร์รายการแล้ว");
+    if(tbWatch) tbWatch.innerHTML = '<tr><td colspan="5" class="muted">—</td></tr>';
+  }
+
+  function setDashStatus(msg){
+    if(dashStatus) dashStatus.textContent = msg;
+  }
+
+  async function loadDailySummary(){
+    try{
+      const date = dashDate ? dashDate.value : "";
+      if(!date) throw new Error("กรุณาเลือกวันที่");
+      setDashStatus("กำลังโหลดสรุปรายวัน…");
+      const { data } = await fetchJsonOrThrow("/api/summary/day?date=" + encodeURIComponent(date), { method:"GET" });
+
+      const ok = data && (data.status==="success" || data.ok===true || data.overall);
+      if(!ok) throw new Error(data.message || data.error || "โหลด summary ไม่สำเร็จ");
+
+      const overall = data.overall || data.summary || {};
+      const bets = Number(overall.bets || overall.total || 0) || 0;
+      const pending = Number(overall.pending || 0) || 0;
+      const win = Number(overall.win || overall.wins || 0) || 0;
+      const lose = Number(overall.lose || overall.losses || 0) || 0;
+      const push = Number(overall.push || overall.pushes || 0) || 0;
+      const profit = Number(overall.profit || 0) || 0;
+      const stake = Number(overall.stake || 0) || 0;
+      const roi = stake>0 ? (profit/stake) : 0;
+
+      if(dBets) dBets.textContent = String(bets);
+      if(dPending) dPending.textContent = String(pending);
+      if(dWin) dWin.textContent = String(win);
+      if(dLose) dLose.textContent = String(lose);
+      if(dPush) dPush.textContent = String(push);
+      if(dProfit) dProfit.textContent = fmtNum(profit, 2);
+
+      if(dStake) dStake.textContent = fmtNum(stake, 2);
+      if(dRoiAll) dRoiAll.textContent = pct(roi, 2);
+
+      const focus = data.focus || data.markets || {};
+      const h = focus.HANDICAP || focus.handicap || null;
+      const t = focus.TOTAL || focus.total || null;
+
+      const hProfit = h ? Number(h.profit||0) : 0;
+      const hStake = h ? Number(h.stake||0) : 0;
+      const tProfit = t ? Number(t.profit||0) : 0;
+      const tStake = t ? Number(t.stake||0) : 0;
+
+      if(dProfitH) dProfitH.textContent = fmtNum(hProfit,2);
+      if(dRoiH) dRoiH.textContent = pct(hStake>0 ? hProfit/hStake : 0, 2);
+      if(dProfitT) dProfitT.textContent = fmtNum(tProfit,2);
+      if(dRoiT) dRoiT.textContent = pct(tStake>0 ? tProfit/tStake : 0, 2);
+
+      const rows = Array.isArray(data.marketStrategies) ? data.marketStrategies
+                : Array.isArray(data.rows) ? data.rows
+                : [];
+
+      if(tbBaseline){
+        if(!rows.length){
+      const fx = lastMeta._totalFixtures ?? lastMeta.fixtures ?? 0;
+      const msgEl = document.getElementById("noPickMsg");
+      if(msgEl){
+        msgEl.innerHTML = `สแกนแล้ว <b>${fx}</b> คู่ LIVE<br>ยังไม่พบสัญญาณที่ผ่านเงื่อนไขสูตร`;
+      }
+          tbBaseline.innerHTML = '<tr><td colspan="10" class="muted">ยังไม่มีผลที่ settle สำหรับวันนี้ (กด Sync ก่อน)</td></tr>';
+        }else{
+          tbBaseline.innerHTML = "";
+          for(const r of rows){
+            const market = cleanText(r.market) || "—";
+            const strategy = cleanText(r.strategy) || "—";
+            const betsR = Number(r.bets||0) || 0;
+            const w = Number(r.wins||r.win||0) || 0;
+            const l = Number(r.losses||r.lose||0) || 0;
+            const p = Number(r.pushes||r.push||0) || 0;
+            const stakeR = Number(r.stakeSum||r.stake||0) || 0;
+            const profR = Number(r.profitSum||r.profit||0) || 0;
+            const roiR = stakeR>0 ? profR/stakeR : 0;
+            const winRate = (w+l+p)>0 ? (w/(w+l+p)) : 0;
+
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td><span class="tag">${market}</span></td>
+              <td><span class="tag">${strategy}</span></td>
+              <td class="mono">${betsR}</td>
+              <td class="mono">${w}</td>
+              <td class="mono">${l}</td>
+              <td class="mono">${p}</td>
+              <td class="mono">${pct(winRate,1)}</td>
+              <td class="mono">${fmtNum(profR,2)}</td>
+              <td class="mono">${fmtNum(stakeR,2)}</td>
+              <td class="mono">${pct(roiR,2)}</td>
+            `;
+            tbBaseline.appendChild(tr);
+          }
+        }
+      }
+      setDashStatus("โหลดสำเร็จ: " + date);
+    }catch(e){
+      console.error(e);
+      setDashStatus("โหลดผิดพลาด: " + String(e.message || e));
+      if(tbBaseline) tbBaseline.innerHTML = '<tr><td colspan="10" class="muted">โหลดผิดพลาด: ' + String(e.message||e) + '</td></tr>';
+    }
+  }
+
+  if(btnScan) btnScan.addEventListener("click", ()=>doScan());
+  if(btnClear) btnClear.addEventListener("click", ()=>clearPicks());
+  if(btnSyncTop) btnSyncTop.addEventListener("click", ()=>doSync("top"));
+  if(fStrategy) fStrategy.addEventListener("change", ()=>renderPicks());
+  if(fMarket) fMarket.addEventListener("change", ()=>renderPicks());
+  if(fMinEdge) fMinEdge.addEventListener("input", ()=>renderPicks());
+  if(fMinKelly) fMinKelly.addEventListener("input", ()=>renderPicks());
+
+  if(btnDashRefresh) btnDashRefresh.addEventListener("click", ()=>loadDailySummary());
+  if(btnDashSync) btnDashSync.addEventListener("click", ()=>doSync("dash"));
+  if(dashDate) dashDate.addEventListener("change", ()=>loadDailySummary());
+
+  route();
 </script>
 </body>
 </html>

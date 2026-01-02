@@ -300,11 +300,6 @@ function buildPickBase(metrics, strategyKey, strategyLabel) {
     scoreHome: metrics.score.home,
     scoreAway: metrics.score.away,
 
-    ts: nowIso(),
-    league: metrics?.league?.name || metrics?.leagueName || "",
-    status: "PENDING",
-    pickId: "",
-
     // required fields (DO NOT REMOVE)
     strategy: strategyLabel || strategyKey,
     tier: "B",
@@ -316,16 +311,37 @@ function buildPickBase(metrics, strategyKey, strategyLabel) {
   };
 }
 
+// เติม field ให้ครบตามสัญญา UI (additive only)
+function finalizePickForUI(pick, metrics) {
+  if (!pick || !metrics) return pick;
+
+  // Required by UI/spec
+  if (!pick.ts) pick.ts = nowIso();
+  if (!pick.pickId) pick.pickId = makePickId({ ...pick, ts: pick.ts });
+
+  // League display (string is simplest for UI)
+  if (!pick.league) pick.league = metrics?.league?.name || metrics?.leagueName || metrics?.league_name || "";
+
+  // Ensure teams
+  if (!pick.home) pick.home = metrics?.teams?.home?.name || pick.home;
+  if (!pick.away) pick.away = metrics?.teams?.away?.name || pick.away;
+
+  // Score/minute at scan (UI uses these fallbacks)
+  if (pick.scoreAtScan == null) pick.scoreAtScan = `${safeNumber(metrics?.score?.home, 0)}-${safeNumber(metrics?.score?.away, 0)}`;
+  if (pick.minuteAtScan == null) pick.minuteAtScan = metrics?.minute;
+
+  // Stake default
+  if (pick.stake == null) pick.stake = 1;
+
+  return pick;
+}
+
 // ===== Dedup =====
 function makeDedupKey(pick) {
   const fixtureId = pick?.fixtureId ?? "";
   const strategy = pick?.strategy ?? "";
-  // IMPORTANT: keep legacy behavior (fixture+strategy+side) but allow multiple lines for HANDICAP/TOTAL by appending line
   const side = pick?.side ?? pick?.selection ?? pick?.betSide ?? "";
-  const market = String(pick?.market || "").toUpperCase();
-  const line = pick?.line;
-  const lineKey = (market === "HANDICAP" || market === "TOTAL") && Number.isFinite(Number(line)) ? `__L${Number(line).toFixed(2)}` : "";
-  return `${fixtureId}__${strategy}__${side}${lineKey}`;
+  return `${fixtureId}__${strategy}__${side}`;
 }
 
 // ===== Debug Grouping =====
@@ -458,61 +474,6 @@ function settleTotal(selection, line, scoreHome, scoreAway) {
   }
   return { outcome: "SKIP", reason: "unknown total selection" };
 }
-
-// ===== Asian Handicap settle (quarter lines supported) =====
-// Line is applied to selected side (e.g., HOME -0.25 => line=-0.25; AWAY +0.25 => line=+0.25)
-// We return WIN/LOSE/HALF_WIN/HALF_LOSE/PUSH
-function _splitAsianLine(line) {
-  const ln = Number(line);
-  if (!Number.isFinite(ln)) return { parts: [], reason: "invalid line" };
-  const frac = Math.abs(ln % 1);
-  const isQuarter = Math.abs(frac - 0.25) < 1e-9 || Math.abs(frac - 0.75) < 1e-9;
-  if (!isQuarter) return { parts: [{ line: ln, w: 1 }], reason: "" };
-
-  // split to nearest 0.5 steps
-  const sign = ln >= 0 ? 1 : -1;
-  const abs = Math.abs(ln);
-  if (Math.abs(abs - 0.25) < 1e-9) {
-    return { parts: [{ line: 0, w: 0.5 }, { line: 0.5 * sign, w: 0.5 }], reason: "" };
-  }
-  // 0.75
-  return { parts: [{ line: 0.5 * sign, w: 0.5 }, { line: 1.0 * sign, w: 0.5 }], reason: "" };
-}
-function _outcomeForAdjusted(adjusted) {
-  if (adjusted > 0) return "WIN";
-  if (adjusted < 0) return "LOSE";
-  return "PUSH";
-}
-function settleAsianHandicap(side, line, scoreHome, scoreAway) {
-  const h = safeNumber(scoreHome, 0);
-  const a = safeNumber(scoreAway, 0);
-  const s = String(side || "").toLowerCase();
-  if (!["home", "away"].includes(s)) return { outcome: "SKIP", reason: "missing side for HANDICAP (need home/away)" };
-
-  const ln = Number(line);
-  if (!Number.isFinite(ln)) return { outcome: "SKIP", reason: "missing/invalid line for HANDICAP" };
-
-  const { parts, reason } = _splitAsianLine(ln);
-  if (!parts.length) return { outcome: "SKIP", reason: reason || "invalid handicap line" };
-
-  const baseDiff = s === "home" ? (h - a) : (a - h);
-
-  const partOutcomes = parts.map((p) => _outcomeForAdjusted(baseDiff + p.line));
-
-  // combine outcomes
-  if (partOutcomes.length === 1) return { outcome: partOutcomes[0], reason: "" };
-
-  const [o1, o2] = partOutcomes;
-  if (o1 === "WIN" && o2 === "WIN") return { outcome: "WIN", reason: "" };
-  if (o1 === "LOSE" && o2 === "LOSE") return { outcome: "LOSE", reason: "" };
-  if (o1 === "PUSH" && o2 === "PUSH") return { outcome: "PUSH", reason: "" };
-  // mixed with PUSH
-  if ((o1 === "WIN" && o2 === "PUSH") || (o1 === "PUSH" && o2 === "WIN")) return { outcome: "HALF_WIN", reason: "" };
-  if ((o1 === "LOSE" && o2 === "PUSH") || (o1 === "PUSH" && o2 === "LOSE")) return { outcome: "HALF_LOSE", reason: "" };
-  // WIN + LOSE (rare) -> PUSH for combined stake
-  return { outcome: "PUSH", reason: "" };
-}
-
 function profitForOutcome(outcome, odds, stake) {
   const o = Number(odds);
   const s = Number(stake ?? 1);
@@ -723,90 +684,7 @@ app.post("/api/scan", async (req, res) => {
           }
         }
 
-        
-        if (key === "handicap_pressure_home" || key === "handicap_pressure_away") {
-          // NOTE: Without SBOBET odds feed, we can still generate HANDICAP picks for all standard Asian lines
-          // and settle them after match finishes. Odds (malay/decimal) can be plugged in later.
-          if (reasons.length === 0) {
-            const sideKey = key === "handicap_pressure_home" ? "home" : "away";
-            const pickBase = buildPickBase(metrics, key, label);
-            const maxLines = Math.max(1, Math.min(25, safeNumber(st?.params?.maxLines, 25))); // 25 lines = -3.00..+3.00 step 0.25
-            const range = safeNumber(st?.params?.lineRange, 3); // default -3..+3
-            const step = 0.25;
-
-            // build all quarter lines within range
-            const lines = [];
-            for (let ln = -range; ln <= range + 1e-9; ln += step) {
-              // keep within maxLines if user overrides params
-              lines.push(Number(ln.toFixed(2)));
-            }
-
-            // optional trim if params.maxLines is smaller than full range
-            let chosen = lines;
-            if (Number.isFinite(maxLines) && maxLines < lines.length) {
-              // keep centered around 0 (closest lines first)
-              chosen = lines
-                .slice()
-                .sort((a, b) => Math.abs(a) - Math.abs(b) || a - b)
-                .slice(0, maxLines)
-                .sort((a, b) => a - b);
-            }
-
-            // generate one pick per line
-            const strength =
-              clamp01(0.60 * Math.max(metrics.pressure.home, metrics.pressure.away) +
-              0.25 * (Math.abs(safeNumber(metrics.shotsOnGoal.home, 0) - safeNumber(metrics.shotsOnGoal.away, 0)) / 5) +
-              0.15 * (Math.abs(safeNumber(metrics.corners.home, 0) - safeNumber(metrics.corners.away, 0)) / 6));
-
-            for (const ln of chosen) {
-              const p2 = { ...pickBase };
-              p2.tier = st?.params?.tier || "B";
-              p2.market = "HANDICAP";
-              p2.betType = "live";
-              p2.selection = sideKey.toUpperCase(); // HOME/AWAY
-              p2.side = sideKey; // home/away (required for settle)
-              p2.line = ln;
-
-              // no odds available; keep placeholders
-              p2.odds = p2.odds ?? null;
-              p2.oddsMalay = p2.oddsMalay ?? null;
-              p2.stake = p2.stake ?? 1;
-              p2.status = p2.status ?? "PENDING";
-              p2.ts = p2.ts ?? nowIso();
-              p2.pickId = p2.pickId ?? makePickId(p2);
-
-              // heuristic edge/kelly without odds feed (purely relative signal strength)
-              const linePenalty = clamp01(Math.abs(ln) / 3); // bigger handicap line => more uncertainty
-              const eff = clamp01(strength * (1 - 0.35 * linePenalty));
-              p2.edge = Number((0.01 + 0.08 * eff).toFixed(4));
-              p2.kelly = Number((0.005 + 0.06 * eff).toFixed(4));
-
-              // IMPORTANT: push each as separate pick (dedup key includes line)
-              const dkey2 = makeDedupKey(p2);
-              if (dedupSet.has(dkey2)) continue;
-              dedupSet.add(dkey2);
-              picks.push(p2);
-              debugStats.passed += 1;
-
-              if (debugEnabled) {
-                debugPassed.push({
-                  fixtureId: metrics.fixtureId,
-                  minute: metrics.minute,
-                  home: metrics.teams.home.name,
-                  away: metrics.teams.away.name,
-                  score: `${metrics.score.home}-${metrics.score.away}`,
-                  strategy: key,
-                  label,
-                  side: `${p2.side}@${p2.line}`,
-                });
-              }
-
-              appendNdjson(PICKS_LOG, { time: nowIso(), type: "pick", pick: p2 });
-            }
-          }
-        }
-
-if (key === "value_1x2") {
+        if (key === "value_1x2") {
           // placeholder: keep your existing logic here (not central to sync-results)
           // If you already added real odds logic previously, keep it. For now, we just skip pick build to avoid false picks.
           // (You can paste your working value_1x2 builder back here if you want.)
@@ -820,11 +698,9 @@ if (key === "value_1x2") {
         }
 
         pick.riskPenaltyMult = Number(riskPenaltyMult.toFixed(3));
-        // ensure required identity fields (additive)
-        pick.ts = pick.ts || nowIso();
-        pick.status = pick.status || "PENDING";
-        if (!pick.pickId) pick.pickId = makePickId(pick);
 
+        // Add missing fields for UI (time/league/stake/pickId/score/minute)
+        finalizePickForUI(pick, metrics);
 
         const dkey = makeDedupKey(pick);
         if (dedupSet.has(dkey)) continue;
@@ -1001,16 +877,9 @@ app.post("/api/results/sync", async (req, res) => {
       const settledTotal = settleTotal(selection, line, scoreHome, scoreAway);
       outcome = settledTotal.outcome;
       reason = settledTotal.reason || "";
-    }
-    // HANDICAP (Asian Handicap, quarter lines supported)
-    else if (market === "HANDICAP") {
-      const line = p.line;
-      const settledHcp = settleAsianHandicap(side, line, scoreHome, scoreAway);
-      outcome = settledHcp.outcome;
-      reason = settledHcp.reason || "";
     } else {
       outcome = "SKIP";
-      reason = "unsupported/insufficient bet schema for auto-settle (need market 1X2 or TOTAL/HANDICAP+line)";
+      reason = "unsupported/insufficient bet schema for auto-settle (need market 1X2 or TOTAL+line)";
     }
 
     if (outcome === "SKIP") {
@@ -1118,151 +987,194 @@ app.get("/api/performance", (req, res) => {
   res.json({ status: "success", strategies: rows });
 });
 
-/**
- * GET /api/summary/day?date=YYYY-MM-DD
- * Summarize picks + results for a given day (Asia/Bangkok day key).
- * - uses logs/picks.ndjson for total/pending
- * - uses logs/results.ndjson for settled outcomes + profit proxy
- * Notes:
- * - Without bookmaker odds feed, profit/ROI may be 0 if odds_bet missing.
- */
+
+
+// ===============================
+// Daily Summary (baseline) — picks.ndjson + results.ndjson
+// GET /api/summary/day?date=YYYY-MM-DD
+// Notes:
+// - Uses pick.ts as the primary day key (fallback to result.time).
+// - Splits totals by market: HANDICAP vs TOTAL (and others if present).
+// - P/L is based on result.profit, stake is result.stake.
+// ===============================
 app.get("/api/summary/day", (req, res) => {
   try {
-    const date = String(req.query?.date || "").trim();
+    const date = String(req.query?.date || "").trim() || nowIso().slice(0, 10); // YYYY-MM-DD
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return res.status(400).json({ status: "error", message: "date ต้องเป็นรูปแบบ YYYY-MM-DD" });
-    }
-
-    // Bangkok day key (UTC+7) to match user expectations
-    function dayKeyBkk(ts) {
-      try {
-        const t = new Date(ts).getTime();
-        if (!Number.isFinite(t)) return null;
-        const bkk = t + 7 * 60 * 60 * 1000;
-        return new Date(bkk).toISOString().slice(0, 10);
-      } catch {
-        return null;
-      }
+      return res.status(400).json({ status: "error", message: "Invalid date. Use YYYY-MM-DD" });
     }
 
     const picksRaw = readNdjson(PICKS_LOG);
     const resultsRaw = readNdjson(RESULTS_LOG);
 
-    // Normalize
-    const picks = [];
-    for (let i = 0; i < picksRaw.length; i++) {
-      const p = normalizePickRecord(picksRaw[i], i);
-      if (p) picks.push(p);
-    }
-    const results = [];
-    for (let i = 0; i < resultsRaw.length; i++) {
-      const r = normalizeResultRecord(resultsRaw[i], i);
-      if (r) results.push(r);
+    const settledById = new Map(); // pickId -> result
+    for (const r of resultsRaw) {
+      if (r?.type !== "result") continue;
+      if (!r?.pickId) continue;
+      settledById.set(r.pickId, r);
     }
 
-    // Build result map (pickId -> result record)
-    const resById = new Map();
-    for (const r of results) {
-      if (r.pickId) resById.set(r.pickId, r);
+    function dayKeyFromPick(p) {
+      const ts = p?.ts || p?.time || "";
+      return String(ts).slice(0, 10);
+    }
+    function dayKeyFromResult(r) {
+      // prefer ts_pick (entry day) to group by "วันที่เข้า"
+      const ts = r?.ts_pick || r?.time || "";
+      return String(ts).slice(0, 10);
+    }
+    function normMarket(x) {
+      const m = String(x || "").toUpperCase();
+      if (m.includes("HANDICAP") || m === "AH") return "HANDICAP";
+      if (m.includes("TOTAL") || m === "OU") return "TOTAL";
+      if (m === "1X2") return "1X2";
+      return m || "UNKNOWN";
+    }
+    function initBucket(name) {
+      return {
+        name,
+        picks: 0,          // total picks (including pending)
+        settled: 0,        // results counted
+        pending: 0,
+        win: 0,
+        lose: 0,
+        half_win: 0,
+        half_lose: 0,
+        push: 0,
+        stakeSum: 0,
+        profitSum: 0,
+        ROI: 0,
+        winRate: 0,
+      };
+    }
+    function applyResult(bucket, r) {
+      const outcome = String(r?.outcome || "").toUpperCase();
+      const stake = safeNumber(r?.stake, 1);
+      const profit = safeNumber(r?.profit, 0);
+
+      bucket.settled += 1;
+      bucket.stakeSum += stake;
+      bucket.profitSum += profit;
+
+      if (outcome === "WIN") bucket.win += 1;
+      else if (outcome === "LOSE") bucket.lose += 1;
+      else if (outcome === "PUSH") bucket.push += 1;
+      else if (outcome === "HALF_WIN") bucket.half_win += 1;
+      else if (outcome === "HALF_LOSE") bucket.half_lose += 1;
+      else {
+        // keep unknown outcomes out of W/L stats but still count settled
+      }
+    }
+    function finalize(bucket) {
+      const decided = bucket.win + bucket.lose + bucket.half_win + bucket.half_lose;
+      bucket.winRate = decided > 0 ? bucket.win / decided : 0;
+      bucket.ROI = bucket.stakeSum > 0 ? bucket.profitSum / bucket.stakeSum : 0;
+
+      // rounding (keep stable JSON)
+      bucket.stakeSum = Number(bucket.stakeSum.toFixed(4));
+      bucket.profitSum = Number(bucket.profitSum.toFixed(4));
+      bucket.winRate = Number(bucket.winRate.toFixed(4));
+      bucket.ROI = Number(bucket.ROI.toFixed(4));
+      return bucket;
     }
 
-    // Filter picks by date
-    const picksToday = [];
-    for (const p of picks) {
-      const id = makePickId(p);
-      const k = dayKeyBkk(p.ts);
-      if (k === date) {
-        picksToday.push({ ...p, pickId: id });
+    const overall = initBucket("OVERALL");
+    const byMarket = new Map();    // market -> bucket
+    const byStrategy = new Map();  // strategy -> bucket
+    const byMarketStrategy = new Map(); // key market||strategy
+
+    // 1) Count picks of the day + pending
+    for (const p of picksRaw) {
+      if (p?.type !== "pick") continue;
+      if (dayKeyFromPick(p) !== date) continue;
+
+      const market = normMarket(p.market);
+      const strategy = p.strategy || "unknown";
+
+      overall.picks += 1;
+
+      if (!byMarket.has(market)) byMarket.set(market, initBucket(market));
+      byMarket.get(market).picks += 1;
+
+      if (!byStrategy.has(strategy)) byStrategy.set(strategy, initBucket(strategy));
+      byStrategy.get(strategy).picks += 1;
+
+      const mk = market + "||" + strategy;
+      if (!byMarketStrategy.has(mk)) byMarketStrategy.set(mk, initBucket(mk));
+      byMarketStrategy.get(mk).picks += 1;
+
+      const settled = p.pickId ? settledById.get(p.pickId) : null;
+      if (!settled) {
+        overall.pending += 1;
+        byMarket.get(market).pending += 1;
+        byStrategy.get(strategy).pending += 1;
+        byMarketStrategy.get(mk).pending += 1;
       }
     }
 
-    // Aggregate
-    const agg = new Map(); // strategy -> stats
-    function ensure(strategy) {
-      const key = strategy || "unknown";
-      if (!agg.has(key)) {
-        agg.set(key, {
-          strategy: key,
-          total: 0,
-          pending: 0,
-          bets: 0,
-          wins: 0,
-          losses: 0,
-          halfWins: 0,
-          halfLoses: 0,
-          pushes: 0,
-          profitSum: 0,
-          stakeSum: 0,
-          roi: 0,
-          winRate: 0,
-        });
-      }
-      return agg.get(key);
+    // 2) Aggregate results of the day (group by entry day = ts_pick)
+    for (const r of resultsRaw) {
+      if (r?.type !== "result") continue;
+      if (dayKeyFromResult(r) !== date) continue;
+
+      const market = normMarket(r.market);
+      const strategy = r.strategy || "unknown";
+
+      applyResult(overall, r);
+
+      if (!byMarket.has(market)) byMarket.set(market, initBucket(market));
+      applyResult(byMarket.get(market), r);
+
+      if (!byStrategy.has(strategy)) byStrategy.set(strategy, initBucket(strategy));
+      applyResult(byStrategy.get(strategy), r);
+
+      const mk = market + "||" + strategy;
+      if (!byMarketStrategy.has(mk)) byMarketStrategy.set(mk, initBucket(mk));
+      applyResult(byMarketStrategy.get(mk), r);
     }
 
-    for (const p of picksToday) {
-      const s = ensure(p.strategy);
-      s.total += 1;
+    // finalize
+    finalize(overall);
 
-      const r = resById.get(p.pickId);
-      if (!r) {
-        s.pending += 1;
-        continue;
-      }
+    const marketsOut = {};
+    for (const [k, v] of byMarket.entries()) marketsOut[k] = finalize(v);
 
-      s.bets += 1;
+    // split focus: HANDICAP vs TOTAL for baseline
+    const focus = {
+      HANDICAP: marketsOut.HANDICAP || finalize(initBucket("HANDICAP")),
+      TOTAL: marketsOut.TOTAL || finalize(initBucket("TOTAL")),
+    };
 
-      const o = String(r.outcome || "").toUpperCase();
-      if (o === "WIN") s.wins += 1;
-      else if (o === "LOSE") s.losses += 1;
-      else if (o === "PUSH") s.pushes += 1;
-      else if (o === "HALF_WIN") s.halfWins += 1;
-      else if (o === "HALF_LOSE") s.halfLoses += 1;
+    const strategiesOut = Array.from(byStrategy.values()).map(finalize).sort((a, b) => {
+      // ROI desc then winRate desc then picks desc
+      if (b.ROI !== a.ROI) return b.ROI - a.ROI;
+      if (b.winRate !== a.winRate) return b.winRate - a.winRate;
+      return (b.picks - a.picks);
+    });
 
-      const stake = Number(r.stake ?? p.stake ?? 1);
-      const oddsBet = Number(r.odds_bet ?? p.odds);
-      s.stakeSum += Number.isFinite(stake) ? stake : 0;
+    const marketStrategyOut = Array.from(byMarketStrategy.entries()).map(([k, v]) => {
+      const [market, strategy] = k.split("||");
+      const b = finalize(v);
+      return { market, strategy, ...b };
+    }).sort((a, b) => {
+      if (a.market !== b.market) return a.market.localeCompare(b.market);
+      if (b.ROI !== a.ROI) return b.ROI - a.ROI;
+      return (b.picks - a.picks);
+    });
 
-      // Profit proxy (needs odds). If odds missing => 0
-      if (Number.isFinite(oddsBet) && oddsBet > 1 && Number.isFinite(stake) && stake > 0) {
-        if (o === "WIN") s.profitSum += (oddsBet - 1) * stake;
-        else if (o === "LOSE") s.profitSum -= stake;
-        else if (o === "HALF_WIN") s.profitSum += (oddsBet - 1) * stake * 0.5;
-        else if (o === "HALF_LOSE") s.profitSum -= stake * 0.5;
-        // PUSH => 0
-      }
-    }
-
-    const rows = Array.from(agg.values()).sort((a, b) => (b.bets - a.bets) || String(a.strategy).localeCompare(String(b.strategy)));
-    for (const r of rows) {
-      r.winRate = r.bets > 0 ? (r.wins / r.bets) : 0;
-      r.roi = r.stakeSum > 0 ? (r.profitSum / r.stakeSum) : 0;
-    }
-
-    // Totals
-    const total = rows.reduce((m, r) => {
-      m.total += r.total;
-      m.pending += r.pending;
-      m.bets += r.bets;
-      m.wins += r.wins;
-      m.losses += r.losses;
-      m.halfWins += r.halfWins;
-      m.halfLoses += r.halfLoses;
-      m.pushes += r.pushes;
-      m.profitSum += r.profitSum;
-      m.stakeSum += r.stakeSum;
-      return m;
-    }, { total:0,pending:0,bets:0,wins:0,losses:0,halfWins:0,halfLoses:0,pushes:0,profitSum:0,stakeSum:0 });
-
-    total.winRate = total.bets > 0 ? (total.wins / total.bets) : 0;
-    total.roi = total.stakeSum > 0 ? (total.profitSum / total.stakeSum) : 0;
-
-    res.json({ status: "success", date, total, rows });
+    res.json({
+      status: "success",
+      date,
+      overall,
+      focus,          // { HANDICAP, TOTAL }
+      markets: marketsOut,
+      strategies: strategiesOut,
+      marketStrategies: marketStrategyOut,
+    });
   } catch (e) {
-    res.status(500).json({ status: "error", message: e?.message || String(e) });
+    res.status(500).json({ status: "error", message: String(e?.message || e) });
   }
 });
-
 
 
 // ===== Start =====
